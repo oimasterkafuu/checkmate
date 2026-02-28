@@ -1,0 +1,137 @@
+table.list {
+  font-size: 18px;
+  text-align: center;
+  border-collapse: collapse;
+  background-color: white;
+}
+table.list tr {
+  background-color: white;
+}
+table.list th {
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+  border-bottom: 2px solid black;
+  padding: 5px 25px;
+  color: black;
+}
+table.list.selectable tbody tr {
+  transition: all 0.2s ease-in-out;
+}
+table.list.selectable tbody tr:hover {
+  background-color: #eee;
+  cursor: pointer;
+}
+table.list td {
+  border: 1px solid #bbb;
+  padding: 5px 8px;
+  overflow: hidden;
+  max-width: 250px;
+  font-size: 20px;
+  color: black;
+}
+table.list td * {
+  font-size: 14px;
+  color: black;
+}
+
+.mobile,
+.mobile td,
+.mobile input {
+  padding: 2px !important;
+  font-size: 10px !important;
+}
+table.mobile {
+  padding: 0 !important;
+}
+.mobile input {
+  width: 60px;
+}
+.mobile button {
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+}
+.mobile #replay-turn-jump {
+  padding: 0px 0px 0px 10px !important;
+}
+.mobile#turn-counter {
+  min-width: 60px;
+}
+.mobile#replay-top-left {
+  top: 20px;
+}
+
+input[type='range'] {
+  -webkit-appearance: none;
+  margin: 10px 0;
+  width: 100%;
+}
+input[type='range']:focus {
+  outline: 0;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  animate: 0.2s;
+  background: #ddd;
+  border-radius: 8px;
+}
+input[type='range']::-webkit-slider-thumb {
+  border: 1px solid teal;
+  height: 18px;
+  width: 12px;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -7.5px;
+}
+input[type='range']:focus::-webkit-slider-runnable-track {
+  background: #ddd;
+}
+input[type='range']::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  animate: 0.2s;
+  background: #ddd;
+  border-radius: 8px;
+}
+input[type='range']::-moz-range-thumb {
+  border: 1px solid teal;
+  height: 18px;
+  width: 12px;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+input[type='range']::-ms-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  animate: 0.2s;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+input[type='range']::-ms-fill-lower {
+  background: #ddd;
+  border-radius: 16px;
+}
+input[type='range']::-ms-fill-upper {
+  background: #ddd;
+  border-radius: 16px;
+}
+input[type='range']::-ms-thumb {
+  border: 1px solid teal;
+  height: 18px;
+  width: 12px;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+input[type='range']:focus::-ms-fill-lower {
+  background: #ddd;
+}
+input[type='range']:focus::-ms-fill-upper {
+  background: #ddd;
+}

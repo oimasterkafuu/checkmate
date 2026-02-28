@@ -1,0 +1,107 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
+    <link rel="stylesheet" href="/main.css" />
+    <title>Checkmate!! - 回放</title>
+  </head>
+
+  <body style="overflow: scroll">
+    <div style="position: fixed; top: 12px; right: 12px; z-index: 20">
+      <span id="account-name" style="margin-right: 8px; font-family: Quicksand-Bold"></span>
+    </div>
+    <center id="app">
+      <table class="list selectable">
+        <thead>
+          <tr>
+            <th style="width: 12em">时间</th>
+            <th>回合数</th>
+            <th>结果</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="replay in replays" @click="gotoReplay(replay.id)">
+            <td>{{ getTime(replay.time) }}</td>
+            <td>{{ replay.turn }}</td>
+            <td>
+              <div v-for="name in replay.rank">{{ name }}</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="!replays.length && !loadingMore" style="margin-top: 12px">暂无回放。</p>
+      <button
+        v-if="hasMore"
+        @click="loadMore"
+        :disabled="loadingMore"
+        class="small"
+        style="margin-top: 12px"
+      >
+        {{ loadingMore ? '加载中...' : '加载更多' }}
+      </button>
+    </center>
+    <script>
+      function getTime(time) {
+        var date = new Date((time + 8 * 3600) * 1000);
+        return date.toJSON().substr(0, 19).replace('T', ' ');
+      }
+      function gotoReplay(id) {
+        location.href = '/replays/' + id;
+      }
+      fetch('/api/auth/me')
+        .then(function (res) {
+          if (!res.ok) {
+            location.href = '/login';
+            return null;
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+          document.getElementById('account-name').textContent = data.username;
+        });
+      new Vue({
+        el: '#app',
+        data: function () {
+          return {
+            replays: [],
+            offset: 0,
+            hasMore: true,
+            loadingMore: false,
+          };
+        },
+        methods: {
+          loadMore: function () {
+            if (this.loadingMore || !this.hasMore) return;
+            this.loadingMore = true;
+            axios
+              .get('/api/replays', {
+                params: { offset: this.offset, limit: 50 },
+              })
+              .then((res) => {
+                const payload = res.data || {};
+                const items = Array.isArray(payload.items) ? payload.items : [];
+                this.replays = this.replays.concat(items);
+                this.offset = Number(payload.next_offset || this.offset + items.length);
+                this.hasMore = Boolean(payload.has_more);
+              })
+              .catch(() => {
+                location.href = '/login';
+              })
+              .finally(() => {
+                this.loadingMore = false;
+              });
+          },
+        },
+        created: function () {
+          this.loadMore();
+        },
+      });
+    </script>
+  </body>
+</html>

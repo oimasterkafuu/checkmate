@@ -1,0 +1,120 @@
+#game-link {
+  white-space: nowrap;
+  margin: 0;
+  color: teal;
+  background: white;
+  padding: 5px 10px;
+}
+#room-input {
+  width: min(620px, 92vw);
+}
+#room-link-display {
+  width: min(620px, 92vw);
+  min-height: 54px;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  font-size: 22px;
+  line-height: 1.3;
+  color: teal;
+  background: white;
+  box-shadow: 2px 2px teal;
+  text-align: left;
+  word-break: break-all;
+  cursor: pointer;
+}
+#room-link-display:hover {
+  background-color: #f5f5f5;
+}
+#room-link-label,
+#room-link-text,
+#room-link-text b,
+#room-link-copied {
+  color: teal;
+}
+#room-link-text b {
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+#room-link-copied {
+  margin-left: 10px;
+  font-size: 14px;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+#map-token {
+  width: min(560px, 95%);
+}
+
+.custom-queue-page-container {
+  background-color: #333;
+  margin-top: 0;
+  padding: 6px;
+  min-width: 600px;
+}
+.custom-queue-page-container h3 {
+  font-size: 12px;
+  margin: 0 0 3px 0;
+}
+.custom-queue-page-container p {
+  font-size: 10px;
+  margin: 0;
+}
+
+.custom-team-container {
+  display: inline-block;
+  margin: 5px !important;
+  padding: 6px;
+  padding-top: 4px;
+  background-color: #222;
+}
+.custom-team-container h4 {
+  margin: 2px;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+  border-bottom: 1px solid white;
+  padding: 2px;
+  font-size: 10px;
+}
+.custom-team-container p {
+  display: inline;
+  margin: 2px;
+  font-size: 14px;
+}
+.inline-color-block {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 2px;
+}
+
+.slider-container {
+  position: relative;
+  background-color: #222;
+  border: 1px solid transparent;
+  padding: 4px 18px 18px 18px;
+  width: 50%;
+  min-width: 300px;
+  border-radius: 3px;
+  transition: all 0.2s ease-in-out;
+}
+.slider-container .slider-value {
+  bottom: 5px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.slider-container .slider-min {
+  position: absolute;
+  left: 5px;
+  bottom: 5px;
+}
+.slider-container .slider-max {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+}
+.slider-container input[type='range'] {
+  margin: 0;
+  background-color: transparent;
+  width: 100%;
+}
+
+#you-are p {
+  font-size: 10px;
+}

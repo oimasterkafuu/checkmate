@@ -1,0 +1,207 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="/crown.js"></script>
+    <script src="/main/core-globals.js"></script>
+    <script src="/main/replay-binary.js"></script>
+    <script src="/main/room-controls.js"></script>
+    <script src="/main/replay-controls.js"></script>
+    <script src="/main/render-update.js"></script>
+    <script src="/main.js"></script>
+    <link rel="stylesheet" href="/main.css" />
+    <title>Checkmate!! - 对局</title>
+  </head>
+
+  <body>
+    <div id="game" style="display: none">
+      <div id="map"></div>
+      <div id="map_back"></div>
+    </div>
+
+    <div id="turn-counter" style="display: none"></div>
+    <table id="game-leaderboard" style="display: none">
+      <tbody>
+        <tr>
+          <td>队伍</td>
+          <td>玩家</td>
+          <td>兵力</td>
+          <td>领土</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div id="room-top-left" style="display: none; position: fixed; top: 12px; left: 12px; z-index: 24">
+      <button id="room-home-btn" class="small">返回首页</button>
+    </div>
+
+    <div id="menu" class="center center-tag" style="display: none">
+      <div style="margin-bottom: 15px">
+        <div id="room-link-display" title="点击复制房间链接">
+          <span id="room-link-label">房间链接：</span>
+          <span id="room-link-text"></span>
+          <span id="room-link-copied" style="display: none">复制成功</span>
+        </div>
+      </div>
+      <div class="custom-queue-page-container">
+        <div id="teams"></div>
+        <h3>地图类型：</h3>
+        <div id="tabs-map-mode" class="tabs background unselectable">
+          <input type="hidden" value="random" />
+          <div class="inline-button inverted">标准地图</div>
+          <div class="inline-button">峡谷回廊</div>
+        </div>
+        <h3>游戏速度：</h3>
+        <div id="tabs-game-speed" class="tabs background unselectable">
+          <input type="hidden" value="1x" />
+          <div class="inline-button">0.5x</div>
+          <div class="inline-button">0.75x</div>
+          <div class="inline-button inverted">1x</div>
+          <div class="inline-button">1.5x</div>
+          <div class="inline-button">2x</div>
+          <div class="inline-button">3x</div>
+          <div class="inline-button">4x</div>
+        </div>
+        <h3 id="map-input-label">地图随机种子：</h3>
+        <p>
+          <input
+            type="text"
+            id="map-token"
+            placeholder="留空将自动生成随机种子"
+            value=""
+            maxlength="32"
+            style="margin-top: 3px"
+          />
+        </p>
+        <div id="team-mode-section">
+          <h3>允许组队：</h3>
+          <div id="tabs-team-mode" class="tabs background unselectable">
+            <input type="hidden" value="不允许" />
+            <div class="inline-button inverted">不允许</div>
+            <div class="inline-button">允许</div>
+          </div>
+        </div>
+        <div id="team-select-section">
+          <h3>选择队伍：</h3>
+          <div id="tabs-custom-team" class="tabs background unselectable">
+            <input type="hidden" value="参赛" />
+            <div class="inline-button inverted">参赛</div>
+            <div class="inline-button" style="display: none">2</div>
+            <div class="inline-button" style="display: none">3</div>
+            <div class="inline-button" style="display: none">4</div>
+            <div class="inline-button" style="display: none">5</div>
+            <div class="inline-button" style="display: none">6</div>
+            <div class="inline-button" style="display: none">7</div>
+            <div class="inline-button" style="display: none">8</div>
+            <div class="inline-button" style="display: none">9</div>
+            <div class="inline-button" style="display: none">10</div>
+            <div class="inline-button" style="display: none">11</div>
+            <div class="inline-button" style="display: none">12</div>
+            <div class="inline-button" style="display: none">13</div>
+            <div class="inline-button" style="display: none">14</div>
+            <div class="inline-button" style="display: none">15</div>
+            <div class="inline-button" style="display: none">16</div>
+            <div class="inline-button">观战</div>
+          </div>
+        </div>
+      </div>
+      <p id="host-true" class="custom-host-message" style="background-color: teal; display: none">
+        你是本局房主，只有你可以修改游戏设置。
+      </p>
+      <p
+        id="host-false"
+        class="custom-host-message"
+        style="background-color: rgba(255, 0, 0, 0.25); display: none"
+      >
+        你不是房主，无法修改游戏设置。
+      </p>
+      <div id="you-are" style="display: none">
+        <p style="margin-right: 3px; display: inline">你的颜色：</p>
+        <span></span>
+      </div>
+      <button id="force-start" style="display: none"></button>
+    </div>
+
+    <div id="game-starting" class="center center-tag" style="display: none">
+      <h1>游戏即将开始...</h1>
+      <div id="you-are-2" style="display: none">
+        <p style="margin-right: 3px; display: inline">你的颜色：</p>
+        <span></span>
+      </div>
+    </div>
+
+    <div id="chat" style="display: none">
+      <div id="chat-messages-container"></div>
+      <input type="text" id="chatroom-input" class="" placeholder="按 [回车] 发送聊天" value="" />
+    </div>
+
+    <div class="alert center" id="status-alert" style="display: none">
+      <center>
+        <h1
+          style="margin: 15px 0px 5px; text-align: center; font-family: Quicksand-Bold, HYMaQiDuo-Bold; white-space: nowrap"
+        >
+          游戏结束
+        </h1>
+        <p style="text-align: center; margin-bottom: 0">
+          <span>你被 <span style="font-family: Quicksand-Bold"></span> 击败了。</span>
+        </p>
+        <button class="small inverted" style="margin-top: 16px; display: none">继续观战</button><br />
+        <button class="inverted">返回房间</button><br />
+        <button class="inverted" style="display: none">查看回放</button><br />
+        <button class="inverted">退出</button>
+      </center>
+    </div>
+
+    <div class="alert center" id="surrender-alert" style="display: none">
+      <center>
+        <h1
+          style="margin: 15px 0px 5px; text-align: center; font-family: Quicksand-Bold, HYMaQiDuo-Bold; white-space: nowrap"
+        >
+          确认投降
+        </h1>
+        <p style="text-align: center; margin-bottom: 0">投降后将转为观战，并留在当前对局中。</p>
+        <button id="surrender-confirm" class="small inverted" style="margin-top: 16px">确认投降</button><br />
+        <button id="surrender-cancel">取消</button>
+      </center>
+    </div>
+
+    <div id="replay-top-left" style="display: none">
+      <div id="replay-turn-jump" class="background">
+        跳转回合：
+        <input type="text" id="replay-turn-jump-input" class="unselectable" placeholder="0" />
+        <div id="replay-turn-jump-button" class="inline-button">→</div>
+      </div>
+      <button class="small" style="display: block">自动播放</button>
+      <button class="small" style="display: block">退出</button>
+    </div>
+
+    <div id="replay-bottom" class="fixed-center-horizontal" style="display: none">
+      <center>
+        <div id="tabs-replay-autoplay" class="tabs background unselectable" style="display: none">
+          <input type="hidden" value="1x" />
+          <div class="inline-button">0.5x</div>
+          <div class="inline-button">0.75x</div>
+          <div class="inline-button inverted">1x</div>
+          <div class="inline-button">1.5x</div>
+          <div class="inline-button">2x</div>
+          <div class="inline-button">3x</div>
+          <div class="inline-button">4x</div>
+          <div class="inline-button">8x</div>
+          <div class="inline-button">16x</div>
+        </div>
+        <br />
+        <div id="replay-bottom-bar" class="background">
+          <div class="unselectable"><span>[←]</span><br />后退</div>
+          <div class="unselectable"><span>[空格]</span><br />切换自动播放</div>
+          <div class="unselectable"><span>[→]</span><br />下一步</div>
+        </div>
+      </center>
+    </div>
+  </body>
+</html>

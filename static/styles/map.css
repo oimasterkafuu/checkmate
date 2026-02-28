@@ -1,0 +1,211 @@
+.s1 {
+  width: 20px;
+  height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  background-size: 16px 16px;
+}
+.s1 .txt {
+  font-size: 10px;
+  transform: scale(0.8);
+}
+.s2 {
+  width: 25px;
+  height: 25px;
+  max-width: 25px;
+  max-height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  font-size: 10px;
+  background-size: 20px 20px;
+}
+.s3 {
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
+  max-height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 12px;
+  background-size: 25px 25px;
+}
+.s4 {
+  width: 40px;
+  height: 40px;
+  max-width: 40px;
+  max-height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 14px;
+  background-size: 32px 32px;
+}
+.s5 {
+  width: 50px;
+  height: 50px;
+  max-width: 50px;
+  max-height: 50px;
+  min-width: 50px;
+  min-height: 50px;
+  font-size: 16px;
+  background-size: 40px 40px;
+}
+.s6 {
+  width: 60px;
+  height: 60px;
+  max-width: 60px;
+  max-height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  font-size: 18px;
+  background-size: 50px 50px;
+}
+
+.c0 {
+  background-color: gray !important;
+}
+.c1 {
+  background-color: red !important;
+  fill: red !important;
+}
+.c2 {
+  background-color: green !important;
+}
+.c3 {
+  background-color: blue !important;
+}
+.c4 {
+  background-color: purple !important;
+}
+.c5 {
+  background-color: teal !important;
+}
+.c6 {
+  background-color: #004600 !important;
+}
+.c7 {
+  background-color: orange !important;
+}
+.c8 {
+  background-color: brown !important;
+}
+.c9 {
+  background-color: maroon !important;
+}
+.c10 {
+  background-color: #ec7063 !important;
+}
+.c11 {
+  background-color: #935116 !important;
+}
+.c12 {
+  background-color: #1a5276 !important;
+}
+.c13 {
+  background-color: #2ecc71 !important;
+}
+.c14 {
+  background-color: #641e16 !important;
+}
+.c15 {
+  background-color: #b7950b !important;
+}
+.c16 {
+  background-color: #ff5733 !important;
+}
+.c17 {
+  background-color: #f321dd !important;
+}
+
+#map {
+  position: absolute;
+  transform: translateX(-50%) translateY(-50%);
+  z-index: 1;
+}
+#map table {
+  border-spacing: 0px;
+}
+#map td {
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  border: 1px solid black;
+  text-align: center;
+  text-shadow: 0 0 2px black;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: white;
+  user-select: none;
+}
+#map_back {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+.empty {
+  background-color: #dcdcdc;
+}
+.swamp {
+  background-image: url('/swamp.png');
+  background-color: gray;
+}
+.obstacle {
+  background-image: url('/obstacle.png');
+}
+.general {
+  background-image: url('/crown.png');
+}
+.mountain {
+  background-image: url('/mountain.png');
+}
+.city {
+  background-color: gray;
+  background-image: url('/city.png');
+}
+.fog {
+  border: 1px solid rgba(255, 255, 255, 0) !important;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.selectable,
+.attackable:hover {
+  cursor: pointer;
+}
+.selected {
+  border: 1px solid white !important;
+}
+.selected50 {
+  text-shadow: 1px 1px black;
+}
+.attackable {
+  opacity: 0.4;
+}
+
+.arrow_u {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+}
+.arrow_d {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+}
+.arrow_l {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0;
+}
+.arrow_r {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 0;
+}

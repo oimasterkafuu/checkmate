@@ -1,0 +1,166 @@
+html,
+body {
+  background-color: #222;
+}
+body {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+input {
+  outline: 0;
+  color: teal;
+  box-sizing: border-box;
+}
+input[type='text'],
+input[type='password'] {
+  padding: 12px 16px;
+  font-size: 22px;
+  min-height: 54px;
+}
+button {
+  background-color: white;
+  box-shadow: 2px 2px teal;
+  color: teal;
+  font-family: Quicksand, HYMaQiDuo;
+  padding: 10px 30px;
+  margin: 5px;
+  font-size: 22px;
+  border: 0;
+  border-width: 0 !important;
+  outline: none !important;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  border-radius: 0;
+}
+button:focus {
+  outline: 0 !important;
+}
+button:hover {
+  cursor: pointer;
+  background-color: #bbb;
+  box-shadow: 3px 3px teal;
+}
+button.inverted {
+  background-color: teal;
+  box-shadow: 2px 2px black;
+  color: white;
+}
+button.inverted:hover {
+  background-color: #006e6e;
+  box-shadow: 3px 3px black;
+}
+@font-face {
+  font-family: Quicksand;
+  src: url('/Quicksand-Regular.otf');
+}
+@font-face {
+  font-family: Quicksand-Light;
+  src: url('/Quicksand-Light.otf');
+}
+@font-face {
+  font-family: Quicksand-Bold;
+  src: url('/Quicksand-Bold.otf');
+}
+@font-face {
+  font-family: HYMaQiDuo;
+  src: url('/HYMaQiDuo-45W.ttf');
+}
+@font-face {
+  font-family: HYMaQiDuo-Light;
+  src: url('/HYMaQiDuo-35W.ttf');
+}
+@font-face {
+  font-family: HYMaQiDuo-Bold;
+  src: url('/HYMaQiDuo-55W.ttf');
+}
+* {
+  font-family: Quicksand, HYMaQiDuo;
+  color: white;
+}
+
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateY(-50%) translateX(-50%);
+}
+.center-tag,
+.center-tag * {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tabs {
+  margin: 3px;
+  white-space: nowrap;
+  display: inline-block;
+}
+.background {
+  background-color: white;
+  box-shadow: 2px 2px teal;
+}
+.unselectable {
+  user-select: none;
+}
+.inline-button {
+  display: inline-block;
+  text-align: center;
+  font-size: 16px;
+  padding: 6px;
+  color: black;
+  background-color: transparent;
+  transition: background-color 0.2s ease-in-out;
+}
+.inline-button.inverted {
+  background-color: teal;
+  color: white;
+}
+.inline-button:hover {
+  cursor: pointer;
+  background-color: #bbb;
+}
+.inline-button.inverted:hover {
+  background-color: #006e6e;
+}
+.inline-button.readonly {
+  color: #8a8a8a;
+  pointer-events: none;
+  cursor: default;
+}
+.inline-button.disabled {
+  opacity: 0.45;
+  background-color: #888;
+  color: #eee;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+.tabs div {
+  min-width: 35px;
+  font-size: 12px;
+}
+.custom-host-message {
+  padding: 2px;
+  font-size: 10px;
+  margin: 4px 0;
+}
+.fixed-center-horizontal {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.center-horizontal {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+button.small {
+  padding: 8px 20px;
+  font-size: 18px;
+}

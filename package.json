@@ -1,0 +1,43 @@
+{
+  "name": "checkmate",
+  "version": "1.0.0",
+  "description": "Checkmate!!",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"AGENTS.md\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oimasterkafuu/checkmate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/oimasterkafuu/checkmate/issues"
+  },
+  "homepage": "https://github.com/oimasterkafuu/checkmate#readme",
+  "dependencies": {
+    "@fastify/static": "^9.0.0",
+    "fastify": "^5.7.4",
+    "jsonwebtoken": "^9.0.3",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.3.2",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "^10.0.2",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.29.2+sha512.bef43fa759d91fd2da4b319a5a0d13ef7a45bb985a3d7342058470f9d2051a3ba8674e629672654686ef9443ad13a82da2beb9eeb3e0221c87b8154fff9d74b8"
+}

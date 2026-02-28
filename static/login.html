@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="/main.css" />
+    <title>Checkmate!! - 登录</title>
+  </head>
+
+  <body>
+    <div class="center center-tag" style="width: min(92vw, 520px)">
+      <div class="background" style="padding: 18px 20px; box-shadow: 3px 3px teal">
+        <h2 style="color: black; margin: 4px 0 12px; font-family: Quicksand-Bold">账号登录</h2>
+        <p id="auth-error" style="color: #c0392b; min-height: 20px; margin: 0 0 10px"></p>
+        <input
+          id="auth-username"
+          type="text"
+          placeholder="用户名（3-20 位：字母/数字/_）"
+          style="width: 100%; box-sizing: border-box; margin-bottom: 8px; color: teal"
+        />
+        <input
+          id="auth-password"
+          type="password"
+          placeholder="密码（6-72 位）"
+          style="width: 100%; box-sizing: border-box; margin-bottom: 8px; color: teal"
+        />
+        <button id="login-btn" class="inverted" style="width: 100%; margin: 6px 0">登录</button>
+        <button id="register-btn" style="width: 100%; margin: 6px 0">注册并登录</button>
+      </div>
+    </div>
+    <script>
+      async function submitAuth(action) {
+        var username = $('#auth-username').val().trim();
+        var password = $('#auth-password').val();
+        $('#auth-error').text('');
+        if (!username || !password) {
+          $('#auth-error').text('用户名和密码不能为空。');
+          return;
+        }
+        try {
+          const res = await fetch('/api/auth/' + action, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json().catch(function () {
+            return {};
+          });
+          if (!res.ok) {
+            $('#auth-error').text(data.error || '请求失败，请稍后重试。');
+            return;
+          }
+          location.href = '/';
+        } catch (err) {
+          $('#auth-error').text('网络异常，请重试。');
+        }
+      }
+
+      $('#login-btn').on('click', function () {
+        submitAuth('login');
+      });
+      $('#register-btn').on('click', function () {
+        submitAuth('register');
+      });
+      $('#auth-password').on('keypress', function (e) {
+        if (e.keyCode == 13) {
+          submitAuth('login');
+        }
+      });
+    </script>
+  </body>
+</html>

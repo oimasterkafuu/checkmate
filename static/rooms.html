@@ -1,0 +1,111 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <link rel="stylesheet" href="/main.css" />
+    <title>Checkmate!! - 房间列表</title>
+  </head>
+
+  <body style="overflow: scroll">
+    <div style="position: fixed; top: 12px; left: 12px; z-index: 20">
+      <button id="back-home-btn" class="small">返回首页</button>
+      <button id="refresh-btn" class="small">刷新列表</button>
+    </div>
+    <div style="position: fixed; top: 12px; right: 12px; z-index: 20">
+      <span id="account-name" style="margin-right: 8px; font-family: Quicksand-Bold"></span>
+    </div>
+
+    <center id="app" style="margin-top: 84px">
+      <h2 style="margin-bottom: 12px">房间列表</h2>
+      <table class="list selectable">
+        <thead>
+          <tr>
+            <th>房间号</th>
+            <th>房主</th>
+            <th>玩家</th>
+            <th>准备</th>
+          </tr>
+        </thead>
+        <tbody id="rooms-body"></tbody>
+      </table>
+      <p id="rooms-empty" style="display: none; margin-top: 16px">当前没有可加入的房间。</p>
+    </center>
+
+    <script>
+      function goRoom(roomId) {
+        location.href = '/games/' + encodeURIComponent(roomId);
+      }
+
+      function renderRooms(rooms) {
+        const body = document.getElementById('rooms-body');
+        const empty = document.getElementById('rooms-empty');
+        body.innerHTML = '';
+
+        if (!Array.isArray(rooms) || rooms.length === 0) {
+          empty.style.display = '';
+          return;
+        }
+
+        empty.style.display = 'none';
+        for (const item of rooms) {
+          const tr = document.createElement('tr');
+          tr.addEventListener('click', function () {
+            goRoom(item.room);
+          });
+
+          const tdRoom = document.createElement('td');
+          tdRoom.textContent = item.room;
+          tr.appendChild(tdRoom);
+
+          const tdHost = document.createElement('td');
+          tdHost.textContent = item.host || '-';
+          tr.appendChild(tdHost);
+
+          const tdPlayers = document.createElement('td');
+          tdPlayers.textContent = item.playing + ' 对局 / ' + item.spectators + ' 观战';
+          tr.appendChild(tdPlayers);
+
+          const tdReady = document.createElement('td');
+          tdReady.textContent = item.ready + ' / ' + item.need;
+          tr.appendChild(tdReady);
+
+          body.appendChild(tr);
+        }
+      }
+
+      async function loadRooms() {
+        const res = await fetch('/api/rooms');
+        if (!res.ok) {
+          location.href = '/login';
+          return;
+        }
+        const rooms = await res.json();
+        renderRooms(rooms);
+      }
+
+      async function loadUser() {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          location.href = '/login';
+          return;
+        }
+        const data = await res.json();
+        document.getElementById('account-name').textContent = data.username;
+      }
+
+      document.getElementById('back-home-btn').addEventListener('click', function () {
+        location.href = '/';
+      });
+      document.getElementById('refresh-btn').addEventListener('click', function () {
+        loadRooms();
+      });
+
+      loadUser();
+      loadRooms();
+      setInterval(loadRooms, 5000);
+    </script>
+  </body>
+</html>

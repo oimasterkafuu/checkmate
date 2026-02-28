@@ -1,0 +1,93 @@
+#game-leaderboard {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 25;
+  background: black;
+}
+#game-leaderboard:hover {
+  cursor: pointer;
+}
+#game-leaderboard tr.dead {
+  opacity: 0.4;
+}
+#game-leaderboard tr.afk {
+  opacity: 0.7;
+  background-color: red;
+}
+#game-leaderboard td {
+  background: white;
+  padding: 6px;
+  color: black;
+  text-align: center;
+  font-size: 16px;
+}
+#game-leaderboard tr.afk td {
+  background: rgba(255, 255, 255, 0.75);
+}
+#game-leaderboard td.leaderboard-name {
+  color: white;
+  max-width: 350px;
+}
+
+#turn-counter {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 5px;
+  font-size: 16px;
+  background: white;
+  color: black;
+  border-right: 2px solid teal;
+  border-bottom: 2px solid teal;
+  text-align: center;
+  min-width: 84px;
+  z-index: 25;
+}
+
+#replay-top-left {
+  position: fixed;
+  top: 35px;
+  left: -10px;
+  z-index: 25;
+}
+#replay-turn-jump {
+  color: black;
+  padding: 5px 10px 5px 18px;
+}
+#replay-turn-jump-input {
+  min-height: 34px;
+  font-size: 14px;
+  padding: 5px 8px;
+  width: 88px;
+}
+
+#replay-bottom {
+  bottom: 0;
+  padding: 0;
+  margin: 0;
+  z-index: 25;
+}
+#replay-bottom-bar {
+  display: inline-block;
+  margin: 5px;
+  margin-bottom: 10px;
+  white-space: nowrap;
+}
+#replay-bottom-bar div {
+  color: black;
+  display: inline-block;
+  text-align: center;
+  padding: 10px;
+  font-size: 18px;
+  transition: 0.2s ease-in-out;
+  background-color: white;
+}
+#replay-bottom-bar div span {
+  color: black;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+#replay-bottom-bar div:hover {
+  cursor: pointer;
+  background-color: #eee;
+}

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Package manager artifacts
+.pnpm-store/
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Runtime data
+data/users.bin
+data/replays/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
