@@ -29,10 +29,11 @@ pnpm run start
 - `push` 事件仅对 `refs/heads/main` 生效，其他分支会忽略
 - 成功收到 webhook 后会依次执行：
   1. `git fetch origin main`
-  2. `git checkout main`
-  3. `git pull --ff-only origin main`
+  2. `git checkout -f main`
+  3. `git reset --hard origin/main`
   4. `pnpm install --frozen-lockfile`
   5. `pnpm run build`
   6. 自动重启当前进程（在 systemd 下由 systemd 拉起）
 
+注意：自动更新会强制覆盖已跟踪文件中的本地修改。  
 如果更新过程中命令失败，服务会保留当前进程并输出错误日志。
