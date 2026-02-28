@@ -96,25 +96,7 @@ jobs:
 
                 if (!match) {
                   shouldRun = false;
-
-                  await github.rest.issues.createComment({
-                    owner,
-                    repo,
-                    issue_number: issue.number,
-                    body: [
-                      'Comment format is invalid.',
-                      '',
-                      'Use one of these commands:',
-                      '- `OK. major`',
-                      '- `OK. minor`',
-                      '- `OK. patch`',
-                      '',
-                      'Optional merge strategy:',
-                      '- `OK. patch merge`',
-                      '- `OK. patch squash`',
-                      '- `OK. patch rebase`'
-                    ].join('\n')
-                  });
+                  core.info('Ignore comment because format is invalid.');
                 } else {
                   bumpType = match[1].toLowerCase();
                   mergeMethod = (match[2] || 'merge').toLowerCase();
@@ -189,7 +171,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Bump package version
         id: bump
@@ -232,7 +213,9 @@ jobs:
           if git merge --no-commit --no-ff "origin/${{ steps.pr.outputs.base_ref }}"; then
             echo "merge_conflict=false" >> "$GITHUB_OUTPUT"
             echo "conflict_files=" >> "$GITHUB_OUTPUT"
-            git merge --abort
+            if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+              git merge --abort
+            fi
           else
             echo "merge_conflict=true" >> "$GITHUB_OUTPUT"
             {
@@ -240,7 +223,9 @@ jobs:
               git diff --name-only --diff-filter=U
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
-            git merge --abort || git reset --hard HEAD
+            if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+              git merge --abort
+            fi
           fi
 
       - name: Comment conflict details
