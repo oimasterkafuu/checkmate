@@ -1,0 +1,146 @@
+name: Bump Version And Merge PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to process
+        required: true
+        type: string
+      bump_type:
+        description: Select semantic version bump
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      merge_method:
+        description: Merge strategy
+        required: true
+        default: squash
+        type: choice
+        options:
+          - squash
+          - merge
+          - rebase
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: bump-and-merge-pr-${{ inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  bump-and-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read pull request metadata
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumberRaw = '${{ inputs.pr_number }}'.trim();
+            const prNumber = Number(prNumberRaw);
+
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed(`Invalid pr_number: "${prNumberRaw}"`);
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+
+            if (pr.state !== 'open') {
+              core.setFailed(`PR #${prNumber} is not open.`);
+              return;
+            }
+
+            if (pr.draft) {
+              core.setFailed(`PR #${prNumber} is still a draft.`);
+              return;
+            }
+
+            const sameRepo = pr.head.repo?.full_name === `${owner}/${repo}`;
+            if (!sameRepo) {
+              core.setFailed('Only PR branches from the same repository are supported.');
+              return;
+            }
+
+            core.info(`Will bump ${pr.head.ref} and merge into ${pr.base.ref}.`);
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('head_ref', pr.head.ref);
+
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Bump package version
+        id: bump
+        run: |
+          old_version="$(node -p "require('./package.json').version")"
+          pnpm version "${{ inputs.bump_type }}" --no-git-tag-version
+          new_version="$(node -p "require('./package.json').version")"
+
+          echo "old_version=${old_version}" >> "$GITHUB_OUTPUT"
+          echo "new_version=${new_version}" >> "$GITHUB_OUTPUT"
+          echo "Version bumped: ${old_version} -> ${new_version}"
+
+      - name: Commit and push version change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add package.json
+          if [ -f pnpm-lock.yaml ]; then
+            git add pnpm-lock.yaml
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No version change detected; nothing to commit."
+            exit 1
+          fi
+
+          git commit -m "chore(release): bump version to v${{ steps.bump.outputs.new_version }}"
+          git push origin "HEAD:${{ steps.pr.outputs.head_ref }}"
+
+      - name: Merge pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = Number('${{ steps.pr.outputs.pr_number }}');
+            const mergeMethod = '${{ inputs.merge_method }}';
+            const newVersion = '${{ steps.bump.outputs.new_version }}';
+
+            const mergeRequest = {
+              owner,
+              repo,
+              pull_number: prNumber,
+              merge_method: mergeMethod
+            };
+
+            if (mergeMethod !== 'rebase') {
+              mergeRequest.commit_title = `chore(release): merge #${prNumber} with v${newVersion}`;
+            }
+
+            const { data } = await github.rest.pulls.merge(mergeRequest);
+
+            core.info(`Merged PR #${prNumber}: ${data.sha}`);
