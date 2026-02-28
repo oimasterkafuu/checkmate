@@ -63,3 +63,14 @@ pnpm run start
 
 - 该 workflow 仅支持同仓库分支创建的 PR（不支持 fork PR）。
 - PR 必须是 `open` 且非 draft 状态。
+
+## GitHub Action：合并后自动删除 `dev/*` 分支
+
+新增了一个 workflow：`Delete Merged Dev Branch`。
+
+- 触发时机：PR 被关闭（`pull_request.closed`）
+- 仅在以下条件成立时执行删除：
+  - PR 确认已 merge
+  - 源分支名以 `dev/` 开头
+  - 源分支来自当前仓库（不处理 fork 仓库分支）
+- 删除方式：调用 GitHub API 删除 `refs/heads/<head_ref>`
