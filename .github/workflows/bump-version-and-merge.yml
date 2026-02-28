@@ -1,0 +1,325 @@
+name: Bump Version And Merge PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to process
+        required: true
+        type: string
+      bump_type:
+        description: Select semantic version bump
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      merge_method:
+        description: Merge strategy
+        required: true
+        default: merge
+        type: choice
+        options:
+          - merge
+          - squash
+          - rebase
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: bump-and-merge-pr-${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  bump-and-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve trigger request
+        id: request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const allowedUser = 'oimasterkafuu';
+            const eventName = context.eventName;
+            const bumpTypes = new Set(['major', 'minor', 'patch']);
+            const mergeMethods = new Set(['merge', 'squash', 'rebase']);
+
+            let shouldRun = true;
+            let prNumber = null;
+            let bumpType = null;
+            let mergeMethod = 'merge';
+
+            if (eventName === 'workflow_dispatch') {
+              const inputs = context.payload.inputs || {};
+              const prNumberRaw = String(inputs.pr_number || '').trim();
+              prNumber = Number(prNumberRaw);
+              bumpType = String(inputs.bump_type || '').trim().toLowerCase();
+              mergeMethod = String(inputs.merge_method || 'merge').trim().toLowerCase();
+
+              if (!Number.isInteger(prNumber) || prNumber <= 0) {
+                core.setFailed(`Invalid pr_number: "${prNumberRaw}"`);
+                return;
+              }
+
+              if (!bumpTypes.has(bumpType)) {
+                core.setFailed(`Invalid bump_type: "${bumpType}"`);
+                return;
+              }
+
+              if (!mergeMethods.has(mergeMethod)) {
+                core.setFailed(`Invalid merge_method: "${mergeMethod}"`);
+                return;
+              }
+            } else if (eventName === 'issue_comment') {
+              const issue = context.payload.issue;
+              const comment = context.payload.comment;
+              const commentUser = String(comment?.user?.login || '');
+
+              if (!issue?.pull_request) {
+                shouldRun = false;
+                core.info('Ignore issue comment because it is not on a pull request.');
+              } else if (commentUser.toLowerCase() !== allowedUser.toLowerCase()) {
+                shouldRun = false;
+                core.info(`Ignore comment from non-authorized user: ${commentUser}`);
+              } else {
+                prNumber = Number(issue.number);
+                const body = String(comment?.body || '').trim();
+                const match = /^OK\.\s*(major|minor|patch)(?:\s+(merge|squash|rebase))?$/i.exec(body);
+
+                if (!match) {
+                  shouldRun = false;
+
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: issue.number,
+                    body: [
+                      'Comment format is invalid.',
+                      '',
+                      'Use one of these commands:',
+                      '- `OK. major`',
+                      '- `OK. minor`',
+                      '- `OK. patch`',
+                      '',
+                      'Optional merge strategy:',
+                      '- `OK. patch merge`',
+                      '- `OK. patch squash`',
+                      '- `OK. patch rebase`'
+                    ].join('\n')
+                  });
+                } else {
+                  bumpType = match[1].toLowerCase();
+                  mergeMethod = (match[2] || 'merge').toLowerCase();
+                }
+              }
+            } else {
+              shouldRun = false;
+              core.info(`Ignore unsupported event: ${eventName}`);
+            }
+
+            core.setOutput('should_run', String(shouldRun));
+            if (!shouldRun) {
+              return;
+            }
+
+            core.info(`Request accepted: pr #${prNumber}, bump=${bumpType}, merge=${mergeMethod}`);
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('bump_type', bumpType);
+            core.setOutput('merge_method', mergeMethod);
+
+      - name: Read pull request metadata
+        id: pr
+        if: steps.request.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = Number('${{ steps.request.outputs.pr_number }}');
+
+            const { owner, repo } = context.repo;
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+
+            if (pr.state !== 'open') {
+              core.setFailed(`PR #${prNumber} is not open.`);
+              return;
+            }
+
+            if (pr.draft) {
+              core.setFailed(`PR #${prNumber} is still a draft.`);
+              return;
+            }
+
+            const sameRepo = pr.head.repo?.full_name === `${owner}/${repo}`;
+            if (!sameRepo) {
+              core.setFailed('Only PR branches from the same repository are supported.');
+              return;
+            }
+
+            core.info(`Will bump ${pr.head.ref} and merge into ${pr.base.ref}.`);
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('head_ref', pr.head.ref);
+            core.setOutput('base_ref', pr.base.ref);
+
+      - name: Checkout pull request branch
+        if: steps.request.outputs.should_run == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        if: steps.request.outputs.should_run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        if: steps.request.outputs.should_run == 'true'
+        run: corepack enable
+
+      - name: Bump package version
+        id: bump
+        if: steps.request.outputs.should_run == 'true'
+        run: |
+          old_version="$(node -p "require('./package.json').version")"
+          pnpm version "${{ steps.request.outputs.bump_type }}" --no-git-tag-version
+          new_version="$(node -p "require('./package.json').version")"
+
+          echo "old_version=${old_version}" >> "$GITHUB_OUTPUT"
+          echo "new_version=${new_version}" >> "$GITHUB_OUTPUT"
+          echo "Version bumped: ${old_version} -> ${new_version}"
+
+      - name: Commit and push version change
+        if: steps.request.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add package.json
+          if [ -f pnpm-lock.yaml ]; then
+            git add pnpm-lock.yaml
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No version change detected; nothing to commit."
+            exit 1
+          fi
+
+          git commit -m "chore(release): bump version to v${{ steps.bump.outputs.new_version }}"
+          git push origin "HEAD:${{ steps.pr.outputs.head_ref }}"
+
+      - name: Check merge conflicts with base branch
+        id: merge_check
+        if: steps.request.outputs.should_run == 'true'
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ steps.pr.outputs.base_ref }}"
+
+          if git merge --no-commit --no-ff "origin/${{ steps.pr.outputs.base_ref }}"; then
+            echo "merge_conflict=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_files=" >> "$GITHUB_OUTPUT"
+            git merge --abort
+          else
+            echo "merge_conflict=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "conflict_files<<EOF"
+              git diff --name-only --diff-filter=U
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            git merge --abort || git reset --hard HEAD
+          fi
+
+      - name: Comment conflict details
+        if: steps.request.outputs.should_run == 'true' && steps.merge_check.outputs.merge_conflict == 'true'
+        uses: actions/github-script@v7
+        env:
+          CONFLICT_FILES: ${{ steps.merge_check.outputs.conflict_files }}
+          BUMP_TYPE: ${{ steps.request.outputs.bump_type }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = Number('${{ steps.pr.outputs.pr_number }}');
+            const files = String(process.env.CONFLICT_FILES || '')
+              .split('\n')
+              .map((item) => item.trim())
+              .filter(Boolean);
+            const conflictList =
+              files.length > 0
+                ? files.map((item) => `- \`${item}\``).join('\n')
+                : '- (unable to detect files)';
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: [
+                `Version was bumped to \`v${process.env.NEW_VERSION}\`, but auto-merge failed because of conflicts against \`${process.env.BASE_REF}\`.`,
+                '',
+                'Please resolve conflicts manually, push your fix branch, then comment again:',
+                `- \`OK. ${process.env.BUMP_TYPE}\``,
+                '',
+                'Conflict files:',
+                conflictList
+              ].join('\n')
+            });
+
+      - name: Stop after conflict report
+        if: steps.request.outputs.should_run == 'true' && steps.merge_check.outputs.merge_conflict == 'true'
+        run: |
+          echo "Conflicts detected. Manual resolution required."
+          exit 1
+
+      - name: Merge pull request
+        if: steps.request.outputs.should_run == 'true' && steps.merge_check.outputs.merge_conflict != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = Number('${{ steps.pr.outputs.pr_number }}');
+            const mergeMethod = '${{ steps.request.outputs.merge_method }}';
+            const newVersion = '${{ steps.bump.outputs.new_version }}';
+
+            try {
+              const mergeRequest = {
+                owner,
+                repo,
+                pull_number: prNumber,
+                merge_method: mergeMethod
+              };
+
+              if (mergeMethod !== 'rebase') {
+                mergeRequest.commit_title = `chore(release): merge #${prNumber} with v${newVersion}`;
+              }
+
+              const { data } = await github.rest.pulls.merge(mergeRequest);
+              core.info(`Merged PR #${prNumber}: ${data.sha}`);
+            } catch (error) {
+              const message = error?.message || String(error);
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: [
+                  `Version was bumped to \`v${newVersion}\`, but merge failed through GitHub API.`,
+                  '',
+                  'Please check branch protection/status checks or resolve conflicts manually.',
+                  '',
+                  `Error: \`${message}\``
+                ].join('\n')
+              });
+              throw error;
+            }
