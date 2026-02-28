@@ -6,10 +6,13 @@ import { UserStore } from './auth-store';
 import { GameEngine } from './game-engine';
 import { encodeReplayPatchBinary } from './replay-patch-binary';
 import { isReplayIdValid, ReplayStore } from './replay-store';
+import { ensureRuntimeEnv } from './runtime-env';
 import { LobbyConfig, MAX_TEAMS } from './types';
 import { AuthRequest, AuthService } from './server/auth-service';
 import { EditableLobbyKey, LobbyService } from './server/lobby-service';
+import { WebhookUpdater } from './server/webhook-updater';
 
+const runtimeEnv = ensureRuntimeEnv();
 const app = Fastify({ logger: true });
 
 const replayStore = new ReplayStore(path.join(process.cwd(), 'data', 'replays'), {
@@ -18,9 +21,75 @@ const replayStore = new ReplayStore(path.join(process.cwd(), 'data', 'replays'),
 const userStore = new UserStore(path.join(process.cwd(), 'data'));
 const authService = new AuthService(userStore);
 const lobbyService = new LobbyService(replayStore);
+const webhookUpdater = new WebhookUpdater(app.log, runtimeEnv.webhookSecret);
 
-if (authService.usesDefaultSecret()) {
-  app.log.warn('未配置 JWT_SECRET，当前使用开发环境默认密钥。');
+type PushWebhookPayload = { ref?: unknown };
+
+const parseJsonObject = (text: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (parsed && typeof parsed === 'object') {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+const readHeaderValue = (headers: Record<string, unknown>, key: string): string | null => {
+  const value = headers[key];
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0];
+  }
+  return null;
+};
+
+const parsePushWebhookPayload = (
+  body: unknown,
+  rawBody: Buffer,
+  headers: Record<string, unknown>,
+): PushWebhookPayload | null => {
+  const rawText = rawBody.toString('utf8');
+  const directJson = parseJsonObject(rawText);
+  if (directJson) {
+    return directJson;
+  }
+
+  const contentType = readHeaderValue(headers, 'content-type') ?? '';
+  const mightBeFormBody =
+    contentType.includes('application/x-www-form-urlencoded') || rawText.includes('payload=');
+  if (mightBeFormBody) {
+    const encodedPayload = new URLSearchParams(rawText).get('payload');
+    if (encodedPayload) {
+      const parsedPayload = parseJsonObject(encodedPayload);
+      if (parsedPayload) {
+        return parsedPayload;
+      }
+    }
+  }
+
+  if (body && typeof body === 'object' && !Buffer.isBuffer(body)) {
+    const bodyObject = body as Record<string, unknown>;
+    if (typeof bodyObject.payload === 'string') {
+      const payloadInBody = parseJsonObject(bodyObject.payload);
+      if (payloadInBody) {
+        return payloadInBody;
+      }
+    }
+    if ('ref' in bodyObject) {
+      return bodyObject;
+    }
+  }
+
+  return null;
+};
+
+if (runtimeEnv.createdKeys.length > 0) {
+  app.log.info({ keys: runtimeEnv.createdKeys }, '已自动补全缺失环境变量到 .env。');
 }
 
 const boot = async (): Promise<void> => {
@@ -48,6 +117,50 @@ const boot = async (): Promise<void> => {
   await app.register(fastifyStatic, {
     root: path.join(process.cwd(), 'static'),
     prefix: '/',
+  });
+
+  await app.register(async (webhookApp) => {
+    webhookApp.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, done) => {
+      done(null, payload);
+    });
+
+    webhookApp.post('/postreceive', async (request, reply) => {
+      const body = request.body;
+      const rawBody = Buffer.isBuffer(body)
+        ? body
+        : Buffer.from(typeof body === 'string' ? body : body ? JSON.stringify(body) : '');
+      const headers = request.headers as Record<string, unknown>;
+
+      if (!webhookUpdater.isAuthorized(rawBody, headers)) {
+        return reply.code(401).send({ error: 'Webhook signature verification failed.' });
+      }
+
+      const eventHeader = request.headers['x-github-event'];
+      const event =
+        typeof eventHeader === 'string'
+          ? eventHeader
+          : Array.isArray(eventHeader) && typeof eventHeader[0] === 'string'
+            ? eventHeader[0]
+            : '';
+
+      if (event === 'ping') {
+        return reply.send({ ok: true, event: 'ping' });
+      }
+
+      if (event === 'push') {
+        const payload = parsePushWebhookPayload(body, rawBody, headers);
+        if (!payload) {
+          return reply.code(400).send({ error: 'Invalid webhook payload.' });
+        }
+
+        if (payload?.ref !== 'refs/heads/main') {
+          return reply.send({ ok: true, ignored: true, reason: 'non-main push' });
+        }
+      }
+
+      const queued = webhookUpdater.requestUpdate();
+      return reply.code(202).send({ ok: true, queued });
+    });
   });
 
   app.get('/login', async (request, reply) => {

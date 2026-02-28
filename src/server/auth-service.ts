@@ -29,12 +29,11 @@ class AuthService {
 
   constructor(private readonly userStore: UserStore) {}
 
-  usesDefaultSecret(): boolean {
-    return !process.env.JWT_SECRET;
-  }
-
   isPublicPath(pathname: string): boolean {
     if (pathname === '/login' || pathname === '/login.html') {
+      return true;
+    }
+    if (pathname === '/postreceive') {
       return true;
     }
     if (
