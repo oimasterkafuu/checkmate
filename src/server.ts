@@ -23,6 +23,71 @@ const authService = new AuthService(userStore);
 const lobbyService = new LobbyService(replayStore);
 const webhookUpdater = new WebhookUpdater(app.log, runtimeEnv.webhookSecret);
 
+type PushWebhookPayload = { ref?: unknown };
+
+const parseJsonObject = (text: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (parsed && typeof parsed === 'object') {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+const readHeaderValue = (headers: Record<string, unknown>, key: string): string | null => {
+  const value = headers[key];
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0];
+  }
+  return null;
+};
+
+const parsePushWebhookPayload = (
+  body: unknown,
+  rawBody: Buffer,
+  headers: Record<string, unknown>,
+): PushWebhookPayload | null => {
+  const rawText = rawBody.toString('utf8');
+  const directJson = parseJsonObject(rawText);
+  if (directJson) {
+    return directJson;
+  }
+
+  const contentType = readHeaderValue(headers, 'content-type') ?? '';
+  const mightBeFormBody =
+    contentType.includes('application/x-www-form-urlencoded') || rawText.includes('payload=');
+  if (mightBeFormBody) {
+    const encodedPayload = new URLSearchParams(rawText).get('payload');
+    if (encodedPayload) {
+      const parsedPayload = parseJsonObject(encodedPayload);
+      if (parsedPayload) {
+        return parsedPayload;
+      }
+    }
+  }
+
+  if (body && typeof body === 'object' && !Buffer.isBuffer(body)) {
+    const bodyObject = body as Record<string, unknown>;
+    if (typeof bodyObject.payload === 'string') {
+      const payloadInBody = parseJsonObject(bodyObject.payload);
+      if (payloadInBody) {
+        return payloadInBody;
+      }
+    }
+    if ('ref' in bodyObject) {
+      return bodyObject;
+    }
+  }
+
+  return null;
+};
+
 if (runtimeEnv.createdKeys.length > 0) {
   app.log.info({ keys: runtimeEnv.createdKeys }, '已自动补全缺失环境变量到 .env。');
 }
@@ -64,8 +129,9 @@ const boot = async (): Promise<void> => {
       const rawBody = Buffer.isBuffer(body)
         ? body
         : Buffer.from(typeof body === 'string' ? body : body ? JSON.stringify(body) : '');
+      const headers = request.headers as Record<string, unknown>;
 
-      if (!webhookUpdater.isAuthorized(rawBody, request.headers as Record<string, unknown>)) {
+      if (!webhookUpdater.isAuthorized(rawBody, headers)) {
         return reply.code(401).send({ error: 'Webhook signature verification failed.' });
       }
 
@@ -82,10 +148,8 @@ const boot = async (): Promise<void> => {
       }
 
       if (event === 'push') {
-        let payload: { ref?: unknown } | null = null;
-        try {
-          payload = JSON.parse(rawBody.toString('utf8')) as { ref?: unknown };
-        } catch {
+        const payload = parsePushWebhookPayload(body, rawBody, headers);
+        if (!payload) {
           return reply.code(400).send({ error: 'Invalid webhook payload.' });
         }
 

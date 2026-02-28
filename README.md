@@ -25,6 +25,7 @@ pnpm run start
 
 - Webhook 地址：`POST /postreceive`
 - 鉴权方式：优先校验 GitHub 的 `X-Hub-Signature-256`（基于 `WEBHOOK_SECRET`）
+- Payload 类型：支持 `application/json` 与 `application/x-www-form-urlencoded`（读取 `payload` 字段）
 - `push` 事件仅对 `refs/heads/main` 生效，其他分支会忽略
 - 成功收到 webhook 后会依次执行：
   1. `git fetch origin main`
