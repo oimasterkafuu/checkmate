@@ -81,6 +81,19 @@ const boot = async (): Promise<void> => {
         return reply.send({ ok: true, event: 'ping' });
       }
 
+      if (event === 'push') {
+        let payload: { ref?: unknown } | null = null;
+        try {
+          payload = JSON.parse(rawBody.toString('utf8')) as { ref?: unknown };
+        } catch {
+          return reply.code(400).send({ error: 'Invalid webhook payload.' });
+        }
+
+        if (payload?.ref !== 'refs/heads/main') {
+          return reply.send({ ok: true, ignored: true, reason: 'non-main push' });
+        }
+      }
+
       const queued = webhookUpdater.requestUpdate();
       return reply.code(202).send({ ok: true, queued });
     });

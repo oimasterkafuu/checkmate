@@ -48,7 +48,9 @@ class WebhookUpdater {
     let shouldDequeue = true;
     try {
       this.logger.info('收到 webhook，开始自动更新。');
-      await this.runCommand('git', ['pull', '--ff-only'], 'git pull --ff-only');
+      await this.runCommand('git', ['fetch', 'origin', 'main'], 'git fetch origin main');
+      await this.runCommand('git', ['checkout', 'main'], 'git checkout main');
+      await this.runCommand('git', ['pull', '--ff-only', 'origin', 'main'], 'git pull --ff-only origin main');
       await this.runCommand(PNPM_BIN, ['install', '--frozen-lockfile'], 'pnpm install --frozen-lockfile');
       await this.runCommand(PNPM_BIN, ['run', 'build'], 'pnpm run build');
       this.logger.info('自动更新完成，准备重启进程。');
@@ -131,6 +133,11 @@ class WebhookUpdater {
   }
 
   private restartProcess(): void {
+    if (process.env.INVOCATION_ID || process.env.SYSTEMD_EXEC_PID) {
+      process.exit(0);
+      return;
+    }
+
     const args = process.argv.slice(1);
     const command = [shellQuote(process.execPath), ...args.map(shellQuote)].join(' ');
     const script = `sleep 1; cd ${shellQuote(process.cwd())}; ${command}`;
