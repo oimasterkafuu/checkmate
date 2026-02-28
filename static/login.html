@@ -27,49 +27,115 @@
           placeholder="密码（6-72 位）"
           style="width: 100%; box-sizing: border-box; margin-bottom: 8px; color: teal"
         />
-        <button id="login-btn" class="inverted" style="width: 100%; margin: 6px 0">登录</button>
-        <button id="register-btn" style="width: 100%; margin: 6px 0">注册并登录</button>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center">
+          <input
+            id="auth-captcha"
+            type="text"
+            placeholder="验证码"
+            maxlength="6"
+            style="flex: 1; min-width: 0; box-sizing: border-box; color: teal; text-transform: uppercase"
+          />
+          <img
+            id="captcha-image"
+            alt="验证码"
+            width="132"
+            height="46"
+            title="点击刷新验证码"
+            style="border-radius: 6px; border: 1px solid #7cc7c7; background: #ecfeff; cursor: pointer"
+          />
+        </div>
+        <div style="display: flex; gap: 8px; margin: 6px 0">
+          <button id="login-btn" style="flex: 1; margin: 0">登录</button>
+          <button id="register-btn" class="inverted" style="flex: 1; margin: 0">注册</button>
+        </div>
       </div>
     </div>
     <script>
+      var captchaId = '';
+
+      async function refreshCaptcha(showErrorMessage) {
+        try {
+          const res = await fetch('/api/auth/captcha', { cache: 'no-store' });
+          const data = await res.json().catch(function () {
+            return {};
+          });
+          if (!res.ok || !data.captchaId || !data.captchaSvg) {
+            throw new Error('captcha-load-failed');
+          }
+          captchaId = String(data.captchaId);
+          $('#captcha-image').attr('src', String(data.captchaSvg));
+          $('#auth-captcha').val('');
+          return true;
+        } catch (err) {
+          captchaId = '';
+          $('#captcha-image').attr('src', '');
+          if (showErrorMessage) {
+            $('#auth-error').text('验证码加载失败，请稍后重试。');
+          }
+          return false;
+        }
+      }
+
       async function submitAuth(action) {
         var username = $('#auth-username').val().trim();
         var password = $('#auth-password').val();
+        var captchaCode = String($('#auth-captcha').val()).trim().toUpperCase();
         $('#auth-error').text('');
-        if (!username || !password) {
-          $('#auth-error').text('用户名和密码不能为空。');
+        if (!username || !password || !captchaCode) {
+          $('#auth-error').text('用户名、密码和验证码不能为空。');
+          return;
+        }
+        if (!captchaId) {
+          $('#auth-error').text('验证码已失效，请刷新后重试。');
+          await refreshCaptcha(false);
           return;
         }
         try {
           const res = await fetch('/api/auth/' + action, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username, password, captchaId, captchaCode }),
           });
           const data = await res.json().catch(function () {
             return {};
           });
           if (!res.ok) {
             $('#auth-error').text(data.error || '请求失败，请稍后重试。');
+            await refreshCaptcha(false);
             return;
           }
           location.href = '/';
         } catch (err) {
           $('#auth-error').text('网络异常，请重试。');
+          await refreshCaptcha(false);
         }
       }
 
+      $('#captcha-image').on('click', function () {
+        refreshCaptcha(true);
+      });
       $('#login-btn').on('click', function () {
         submitAuth('login');
       });
       $('#register-btn').on('click', function () {
         submitAuth('register');
       });
+      $('#auth-captcha').on('input', function () {
+        var normalized = String($(this).val()).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        $(this).val(normalized);
+      });
       $('#auth-password').on('keypress', function (e) {
         if (e.keyCode == 13) {
           submitAuth('login');
         }
       });
+      $('#auth-captcha').on('keypress', function (e) {
+        if (e.keyCode == 13) {
+          submitAuth('login');
+        }
+      });
+
+      refreshCaptcha(true);
     </script>
   </body>
 </html>

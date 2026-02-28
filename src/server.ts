@@ -9,6 +9,7 @@ import { isReplayIdValid, ReplayStore } from './replay-store';
 import { ensureRuntimeEnv } from './runtime-env';
 import { LobbyConfig, MAX_TEAMS } from './types';
 import { AuthRequest, AuthService } from './server/auth-service';
+import { CaptchaService } from './server/captcha-service';
 import { EditableLobbyKey, LobbyService } from './server/lobby-service';
 import { WebhookUpdater } from './server/webhook-updater';
 
@@ -20,6 +21,7 @@ const replayStore = new ReplayStore(path.join(process.cwd(), 'data', 'replays'),
 });
 const userStore = new UserStore(path.join(process.cwd(), 'data'));
 const authService = new AuthService(userStore);
+const captchaService = new CaptchaService();
 const lobbyService = new LobbyService(replayStore);
 const webhookUpdater = new WebhookUpdater(app.log, runtimeEnv.webhookSecret);
 
@@ -172,10 +174,26 @@ const boot = async (): Promise<void> => {
     return reply.sendFile('login.html');
   });
 
+  app.get('/api/auth/captcha', async (_request, reply) => {
+    return reply.send(captchaService.createChallenge());
+  });
+
   app.post('/api/auth/register', async (request, reply) => {
-    const body = request.body as { username?: string; password?: string };
+    const body = request.body as {
+      username?: string;
+      password?: string;
+      captchaId?: string;
+      captchaCode?: string;
+    };
     const usernameRaw = String(body?.username ?? '');
     const password = String(body?.password ?? '');
+    const captchaId = String(body?.captchaId ?? '');
+    const captchaCode = String(body?.captchaCode ?? '');
+
+    const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
+    if (!captchaCheck.ok) {
+      return reply.code(400).send({ error: captchaCheck.error ?? '验证码校验失败。' });
+    }
 
     try {
       const username = await userStore.register(usernameRaw, password);
@@ -192,9 +210,21 @@ const boot = async (): Promise<void> => {
   });
 
   app.post('/api/auth/login', async (request, reply) => {
-    const body = request.body as { username?: string; password?: string };
+    const body = request.body as {
+      username?: string;
+      password?: string;
+      captchaId?: string;
+      captchaCode?: string;
+    };
     const usernameRaw = String(body?.username ?? '');
     const password = String(body?.password ?? '');
+    const captchaId = String(body?.captchaId ?? '');
+    const captchaCode = String(body?.captchaCode ?? '');
+
+    const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
+    if (!captchaCheck.ok) {
+      return reply.code(400).send({ error: captchaCheck.error ?? '验证码校验失败。' });
+    }
 
     const username = userStore.verifyPassword(usernameRaw, password);
     if (!username) {

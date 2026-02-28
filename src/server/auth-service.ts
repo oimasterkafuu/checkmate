@@ -39,7 +39,8 @@ class AuthService {
     if (
       pathname === '/api/auth/login' ||
       pathname === '/api/auth/register' ||
-      pathname === '/api/auth/logout'
+      pathname === '/api/auth/logout' ||
+      pathname === '/api/auth/captcha'
     ) {
       return true;
     }
