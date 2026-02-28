@@ -178,16 +178,18 @@ jobs:
           ref: ${{ steps.pr.outputs.head_ref }}
           fetch-depth: 0
 
+      - name: Setup pnpm
+        if: steps.request.outputs.should_run == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - name: Setup Node.js
         if: steps.request.outputs.should_run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Enable Corepack
-        if: steps.request.outputs.should_run == 'true'
-        run: corepack enable
 
       - name: Bump package version
         id: bump
