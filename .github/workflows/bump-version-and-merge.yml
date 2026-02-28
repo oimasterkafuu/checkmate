@@ -294,34 +294,104 @@ jobs:
             const prNumber = Number('${{ steps.pr.outputs.pr_number }}');
             const mergeMethod = '${{ steps.request.outputs.merge_method }}';
             const newVersion = '${{ steps.bump.outputs.new_version }}';
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            const maxAttempts = 60;
+            const intervalMs = 10000;
+            let lastMergeable = null;
+            let lastMergeableState = 'unknown';
+            let lastError = null;
 
-            try {
-              const mergeRequest = {
+            for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+              const { data: pr } = await github.rest.pulls.get({
                 owner,
                 repo,
-                pull_number: prNumber,
-                merge_method: mergeMethod
-              };
+                pull_number: prNumber
+              });
 
-              if (mergeMethod !== 'rebase') {
-                mergeRequest.commit_title = `chore(release): merge #${prNumber} with v${newVersion}`;
+              lastMergeable = pr.mergeable;
+              lastMergeableState = pr.mergeable_state || 'unknown';
+              core.info(
+                `Attempt ${attempt}/${maxAttempts}: mergeable=${String(lastMergeable)}, mergeable_state=${lastMergeableState}`
+              );
+
+              if (pr.state !== 'open') {
+                core.setFailed(`PR #${prNumber} is no longer open.`);
+                return;
               }
 
-              const { data } = await github.rest.pulls.merge(mergeRequest);
-              core.info(`Merged PR #${prNumber}: ${data.sha}`);
-            } catch (error) {
-              const message = error?.message || String(error);
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: prNumber,
-                body: [
-                  `Version was bumped to \`v${newVersion}\`, but merge failed through GitHub API.`,
-                  '',
-                  'Please check branch protection/status checks or resolve conflicts manually.',
-                  '',
-                  `Error: \`${message}\``
-                ].join('\n')
-              });
-              throw error;
+              if (pr.draft) {
+                core.setFailed(`PR #${prNumber} is draft.`);
+                return;
+              }
+
+              if (lastMergeable === false && lastMergeableState === 'dirty') {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  body: [
+                    `Version was bumped to \`v${newVersion}\`, but the PR is now in conflict state (\`${lastMergeableState}\`).`,
+                    '',
+                    'Please resolve conflicts manually, then comment again.'
+                  ].join('\n')
+                });
+                core.setFailed('PR is not mergeable due to conflicts.');
+                return;
+              }
+
+              const readyToMerge =
+                lastMergeable === true && ['clean', 'unstable', 'has_hooks'].includes(lastMergeableState);
+
+              if (!readyToMerge) {
+                await sleep(intervalMs);
+                continue;
+              }
+
+              try {
+                const mergeRequest = {
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  merge_method: mergeMethod
+                };
+
+                if (mergeMethod !== 'rebase') {
+                  mergeRequest.commit_title = `chore(release): merge #${prNumber} with v${newVersion}`;
+                }
+
+                const { data } = await github.rest.pulls.merge(mergeRequest);
+                core.info(`Merged PR #${prNumber}: ${data.sha}`);
+                return;
+              } catch (error) {
+                lastError = error;
+                const status = Number(error?.status || 0);
+                const message = String(error?.message || error);
+
+                if (status === 405 && message.toLowerCase().includes('not mergeable')) {
+                  core.info('Merge API still reports not mergeable; will retry.');
+                  await sleep(intervalMs);
+                  continue;
+                }
+
+                throw error;
+              }
             }
+
+            const errorMessage = lastError?.message ? String(lastError.message) : 'none';
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: [
+                `Version was bumped to \`v${newVersion}\`, but auto-merge timed out.`,
+                '',
+                `Current state: \`mergeable=${String(lastMergeable)}\`, \`mergeable_state=${lastMergeableState}\`.`,
+                'This usually means branch protection checks/reviews are still blocking merge.',
+                '',
+                `Last merge error: \`${errorMessage}\``,
+                '',
+                'Please wait for required checks/reviews to pass, then comment again.'
+              ].join('\n')
+            });
+
+            core.setFailed('Timed out waiting for PR to become mergeable.');
