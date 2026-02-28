@@ -6,10 +6,13 @@ import { UserStore } from './auth-store';
 import { GameEngine } from './game-engine';
 import { encodeReplayPatchBinary } from './replay-patch-binary';
 import { isReplayIdValid, ReplayStore } from './replay-store';
+import { ensureRuntimeEnv } from './runtime-env';
 import { LobbyConfig, MAX_TEAMS } from './types';
 import { AuthRequest, AuthService } from './server/auth-service';
 import { EditableLobbyKey, LobbyService } from './server/lobby-service';
+import { WebhookUpdater } from './server/webhook-updater';
 
+const runtimeEnv = ensureRuntimeEnv();
 const app = Fastify({ logger: true });
 
 const replayStore = new ReplayStore(path.join(process.cwd(), 'data', 'replays'), {
@@ -18,9 +21,10 @@ const replayStore = new ReplayStore(path.join(process.cwd(), 'data', 'replays'),
 const userStore = new UserStore(path.join(process.cwd(), 'data'));
 const authService = new AuthService(userStore);
 const lobbyService = new LobbyService(replayStore);
+const webhookUpdater = new WebhookUpdater(app.log, runtimeEnv.webhookSecret);
 
-if (authService.usesDefaultSecret()) {
-  app.log.warn('未配置 JWT_SECRET，当前使用开发环境默认密钥。');
+if (runtimeEnv.createdKeys.length > 0) {
+  app.log.info({ keys: runtimeEnv.createdKeys }, '已自动补全缺失环境变量到 .env。');
 }
 
 const boot = async (): Promise<void> => {
@@ -48,6 +52,38 @@ const boot = async (): Promise<void> => {
   await app.register(fastifyStatic, {
     root: path.join(process.cwd(), 'static'),
     prefix: '/',
+  });
+
+  await app.register(async (webhookApp) => {
+    webhookApp.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, done) => {
+      done(null, payload);
+    });
+
+    webhookApp.post('/postreceive', async (request, reply) => {
+      const body = request.body;
+      const rawBody = Buffer.isBuffer(body)
+        ? body
+        : Buffer.from(typeof body === 'string' ? body : body ? JSON.stringify(body) : '');
+
+      if (!webhookUpdater.isAuthorized(rawBody, request.headers as Record<string, unknown>)) {
+        return reply.code(401).send({ error: 'Webhook signature verification failed.' });
+      }
+
+      const eventHeader = request.headers['x-github-event'];
+      const event =
+        typeof eventHeader === 'string'
+          ? eventHeader
+          : Array.isArray(eventHeader) && typeof eventHeader[0] === 'string'
+            ? eventHeader[0]
+            : '';
+
+      if (event === 'ping') {
+        return reply.send({ ok: true, event: 'ping' });
+      }
+
+      const queued = webhookUpdater.requestUpdate();
+      return reply.code(202).send({ ok: true, queued });
+    });
   });
 
   app.get('/login', async (request, reply) => {
