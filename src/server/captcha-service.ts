@@ -58,8 +58,6 @@ const CAPTCHA_GLYPHS: Record<string, GlyphRows> = {
 
 const randomCharFrom = (source: string): string => source[randomInt(source.length)] ?? source[0];
 
-const randomFromArray = <T>(source: T[]): T => source[randomInt(source.length)] ?? source[0];
-
 const randomFloat = (min: number, max: number): number => {
   const precision = 1000;
   const unit = randomInt(precision + 1) / precision;
@@ -67,6 +65,29 @@ const randomFloat = (min: number, max: number): number => {
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const toHex2 = (value: number): string => value.toString(16).padStart(2, '0');
+
+const randomRgbColor = (minChannel: number, maxChannel: number): string => {
+  const min = clamp(Math.floor(minChannel), 0, 255);
+  const max = clamp(Math.floor(maxChannel), min, 255);
+  const r = randomInt(min, max + 1);
+  const g = randomInt(min, max + 1);
+  const b = randomInt(min, max + 1);
+  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
+};
+
+const randomInkColor = (): string => randomRgbColor(12, 180);
+
+const randomNoiseColor = (): string => randomRgbColor(0, 255);
+
+const shuffleInPlace = <T>(items: T[]): T[] => {
+  for (let i = items.length - 1; i > 0; i -= 1) {
+    const j = randomInt(i + 1);
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+};
 
 class CaptchaService {
   private readonly ttlMs = 5 * 60 * 1000;
@@ -166,48 +187,49 @@ class CaptchaService {
     const backgroundStart = `hsl(${backgroundHue} ${backgroundSaturation}% ${backgroundLightStart}%)`;
     const backgroundEnd = `hsl(${(backgroundHue + backgroundShift + 360) % 360} ${backgroundSaturation}% ${backgroundLightEnd}%)`;
 
-    const letterColors = Array.from({ length: 4 }, () => {
-      const hue = randomInt(0, 360);
-      const saturation = randomInt(52, 88);
-      const lightness = randomInt(15, 32);
-      return `hsl(${hue} ${saturation}% ${lightness}%)`;
-    });
-    const noiseColors = Array.from({ length: 5 }, () => {
-      const hue = randomInt(0, 360);
-      const saturation = randomInt(25, 62);
-      const lightness = randomInt(36, 66);
-      return `hsl(${hue} ${saturation}% ${lightness}%)`;
-    });
-
-    const noiseLines = Array.from({ length: 8 }, () => {
+    const noiseLines = Array.from({ length: 10 }, () => {
       const x1 = randomInt(this.width);
       const y1 = randomInt(this.height);
       const x2 = randomInt(this.width);
       const y2 = randomInt(this.height);
       const strokeWidth = randomFloat(0.7, 1.5).toFixed(2);
-      const color = randomFromArray(noiseColors);
-      const opacity = randomFloat(0.14, 0.3).toFixed(2);
+      const color = randomNoiseColor();
+      const opacity = randomFloat(0.15, 0.32).toFixed(2);
       return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`;
     }).join('');
 
-    const noiseDots = Array.from({ length: 14 }, () => {
+    const noiseDots = Array.from({ length: 22 }, () => {
       const cx = randomInt(this.width);
       const cy = randomInt(this.height);
-      const r = randomFloat(0.6, 1.8).toFixed(2);
-      const color = randomFromArray(noiseColors);
-      const opacity = randomFloat(0.16, 0.32).toFixed(2);
+      const r = randomFloat(0.5, 2.1).toFixed(2);
+      const color = randomNoiseColor();
+      const opacity = randomFloat(0.18, 0.44).toFixed(2);
       return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="${opacity}"/>`;
     }).join('');
 
-    const curveNoise = Array.from({ length: 2 }, () => {
+    const curveNoise = Array.from({ length: 3 }, () => {
       const start = `${randomInt(this.width)} ${randomInt(this.height)}`;
       const control1 = `${randomInt(this.width)} ${randomInt(this.height)}`;
       const control2 = `${randomInt(this.width)} ${randomInt(this.height)}`;
       const end = `${randomInt(this.width)} ${randomInt(this.height)}`;
-      const color = randomFromArray(noiseColors);
-      const opacity = randomFloat(0.14, 0.27).toFixed(2);
+      const color = randomNoiseColor();
+      const opacity = randomFloat(0.16, 0.34).toFixed(2);
       const strokeWidth = randomFloat(0.9, 1.5).toFixed(2);
       return `<path d="M ${start} C ${control1}, ${control2}, ${end}" fill="none" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`;
+    }).join('');
+
+    const textZoneMinX = clamp(startX - 10, 0, this.width);
+    const textZoneMaxX = clamp(startX + totalWidth + 10, 0, this.width);
+    const textZoneMinY = clamp(startY - 8, 0, this.height);
+    const textZoneMaxY = clamp(startY + glyphHeight + 8, 0, this.height);
+    const interferenceDots = Array.from({ length: 26 }, () => {
+      const nearText = randomFloat(0, 1) < 0.72;
+      const cx = nearText ? randomFloat(textZoneMinX, textZoneMaxX) : randomFloat(0, this.width);
+      const cy = nearText ? randomFloat(textZoneMinY, textZoneMaxY) : randomFloat(0, this.height);
+      const r = randomFloat(0.4, 1.9).toFixed(2);
+      const opacity = randomFloat(0.36, 0.86).toFixed(2);
+      const color = randomInkColor();
+      return `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r}" fill="${color}" fill-opacity="${opacity}"/>`;
     }).join('');
 
     const letters = code
@@ -217,11 +239,10 @@ class CaptchaService {
         const y = clamp(startY + randomInt(-2, 3), 2, this.height - glyphHeight - 2);
         const rotate = randomInt(-11, 12);
         const skew = randomInt(-7, 8);
-        const color = randomFromArray(letterColors);
         const body = this.renderGlyph(char, pixelSize);
         const centerX = (5 * pixelSize) / 2;
         const centerY = (7 * pixelSize) / 2;
-        return `<g transform="translate(${x} ${y})"><g fill="${color}" transform="rotate(${rotate} ${centerX} ${centerY}) skewX(${skew})">${body}</g></g>`;
+        return `<g transform="translate(${x} ${y})"><g transform="rotate(${rotate} ${centerX} ${centerY}) skewX(${skew})">${body}</g></g>`;
       })
       .join('');
 
@@ -229,7 +250,7 @@ class CaptchaService {
     const warpFrequencyX = randomFloat(0.006, 0.014).toFixed(3);
     const warpFrequencyY = randomFloat(0.02, 0.05).toFixed(3);
     const warpScale = randomInt(2, 5);
-    const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}"><defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${backgroundStart}"/><stop offset="100%" stop-color="${backgroundEnd}"/></linearGradient><clipPath id="clip"><rect x="1" y="1" width="${this.width - 2}" height="${this.height - 2}" rx="8" ry="8"/></clipPath><filter id="warp" x="-10%" y="-15%" width="120%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="${warpFrequencyX} ${warpFrequencyY}" numOctaves="1" seed="${warpSeed}" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${warpScale}" xChannelSelector="R" yChannelSelector="G"/></filter></defs><rect width="100%" height="100%" fill="url(#bg)" rx="8" ry="8"/><g clip-path="url(#clip)">${noiseLines}${noiseDots}${curveNoise}<g filter="url(#warp)">${letters}</g></g></svg>`;
+    const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}"><defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${backgroundStart}"/><stop offset="100%" stop-color="${backgroundEnd}"/></linearGradient><clipPath id="clip"><rect x="1" y="1" width="${this.width - 2}" height="${this.height - 2}" rx="8" ry="8"/></clipPath><filter id="warp" x="-10%" y="-15%" width="120%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="${warpFrequencyX} ${warpFrequencyY}" numOctaves="1" seed="${warpSeed}" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${warpScale}" xChannelSelector="R" yChannelSelector="G"/></filter></defs><rect width="100%" height="100%" fill="url(#bg)" rx="8" ry="8"/><g clip-path="url(#clip)">${noiseLines}${noiseDots}${curveNoise}${interferenceDots}<g filter="url(#warp)">${letters}</g></g></svg>`;
 
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   }
@@ -238,6 +259,7 @@ class CaptchaService {
     const glyph = CAPTCHA_GLYPHS[char] ?? CAPTCHA_GLYPHS.S;
     const radius = (pixelSize * 0.36).toFixed(2);
     const rects: string[] = [];
+    const activePixels: Array<{ colIndex: number; rowIndex: number }> = [];
 
     for (let rowIndex = 0; rowIndex < glyph.length; rowIndex += 1) {
       const row = glyph[rowIndex];
@@ -245,12 +267,31 @@ class CaptchaService {
         if (row[colIndex] !== '1') {
           continue;
         }
-        const cellJitter = pixelSize * 0.09;
-        const size = randomFloat(pixelSize * 0.92, pixelSize * 1.06);
-        const x = colIndex * pixelSize + randomFloat(-cellJitter, cellJitter);
-        const y = rowIndex * pixelSize + randomFloat(-cellJitter, cellJitter);
+        activePixels.push({ colIndex, rowIndex });
+      }
+    }
+    shuffleInPlace(activePixels);
+
+    for (const pixel of activePixels) {
+      const { colIndex, rowIndex } = pixel;
+      const cellJitter = pixelSize * 0.14;
+      const size = randomFloat(pixelSize * 0.86, pixelSize * 1.12);
+      const x = colIndex * pixelSize + randomFloat(-cellJitter, cellJitter);
+      const y = rowIndex * pixelSize + randomFloat(-cellJitter, cellJitter);
+      const centerX = x + size / 2;
+      const centerY = y + size / 2;
+      const rotate = randomInt(-24, 25);
+      const opacity = randomFloat(0.62, 0.99).toFixed(2);
+      const fill = randomInkColor();
+      rects.push(
+        `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${radius}" ry="${radius}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`
+      );
+      if (randomFloat(0, 1) < 0.16) {
+        const dotX = x + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
+        const dotY = y + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
+        const dotR = randomFloat(0.32, 0.88).toFixed(2);
         rects.push(
-          `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${radius}" ry="${radius}"/>`
+          `<circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${dotR}" fill="${randomInkColor()}" fill-opacity="${randomFloat(0.48, 0.92).toFixed(2)}"/>`
         );
       }
     }
