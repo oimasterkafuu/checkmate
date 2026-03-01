@@ -388,9 +388,10 @@ const applyCoastlineNoise = (
 
 const placePlayerIslands = (
   rng: SeededRandom,
+  n: number,
+  m: number,
   gridType: Tile[][],
   armyCnt: number[][],
-  m: number,
   selectedPlayerIslands: IslandInfo[],
 ): boolean => {
   for (let i = 0; i < selectedPlayerIslands.length; i += 1) {
@@ -399,10 +400,42 @@ const placePlayerIslands = (
     if (centerCandidates.length === 0) {
       return false;
     }
-    const cityIndex = rng.intInclusive(0, centerCandidates.length - 1);
-    const [cityX, cityY] = centerCandidates[cityIndex];
-    gridType[cityX][cityY] = -1;
-    armyCnt[cityX][cityY] = 15;
+
+    shuffle(centerCandidates, rng);
+    let placedCenterLayout = false;
+    for (let candidateIndex = 0; candidateIndex < centerCandidates.length; candidateIndex += 1) {
+      const [cityX, cityY] = centerCandidates[candidateIndex];
+      gridType[cityX][cityY] = -1;
+      armyCnt[cityX][cityY] = 15;
+
+      let valid = true;
+      for (let j = 0; j < centerCandidates.length; j += 1) {
+        if (j === candidateIndex) {
+          continue;
+        }
+        const [mx, my] = centerCandidates[j];
+        if (!canPlaceMountainWithoutTrappingCity(n, m, gridType, mx, my)) {
+          valid = false;
+          break;
+        }
+        gridType[mx][my] = 1;
+      }
+
+      if (valid) {
+        placedCenterLayout = true;
+        break;
+      }
+
+      for (let j = 0; j < centerCandidates.length; j += 1) {
+        const [rx, ry] = centerCandidates[j];
+        gridType[rx][ry] = 0;
+        armyCnt[rx][ry] = 0;
+      }
+    }
+
+    if (!placedCenterLayout) {
+      return false;
+    }
 
     const centerSet = new Set<number>(island.centerCells.map(([x, y]) => x * m + y));
     const spawnCandidates = island.baseCells.filter(
@@ -619,7 +652,7 @@ const generateArchipelagoMap = (
     }
 
     const playerIslandIds = new Set<number>(selectedPlayerIslands.map((island) => island.id));
-    if (!placePlayerIslands(rng, gridType, armyCnt, m, selectedPlayerIslands)) {
+    if (!placePlayerIslands(rng, n, m, gridType, armyCnt, selectedPlayerIslands)) {
       continue;
     }
 
