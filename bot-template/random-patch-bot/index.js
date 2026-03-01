@@ -34,6 +34,7 @@ const state = {
   playerId: 0,
   lastTurn: -1,
   inGame: false,
+  lastLobbyActionAt: 0,
 };
 
 function indexOfCell(x, y) {
@@ -175,15 +176,27 @@ function autoReadyFromRoomUpdate(data) {
   const team = Number.parseInt(String(self.team ?? '0'), 10) || 0;
   const ready = toBoolean(self.ready);
   const targetTeam = allowTeam ? BOT_TEAM : 1;
+  const need = Number.parseInt(String(data?.need ?? '0'), 10) || 0;
+  const now = Date.now();
+
+  if (now - state.lastLobbyActionAt < 1000) {
+    return;
+  }
 
   if (team === 0) {
     socket.emit('change_team', { team: targetTeam });
+    state.lastLobbyActionAt = now;
     console.log(`[bot] request change_team=${targetTeam}`);
+    return;
+  }
+
+  if (need <= 1) {
     return;
   }
 
   if (!ready) {
     socket.emit('change_ready', { ready: true });
+    state.lastLobbyActionAt = now;
     console.log('[bot] request change_ready=true');
   }
 }

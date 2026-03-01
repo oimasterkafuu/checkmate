@@ -20,6 +20,7 @@ class Bot {
     this.inGame = false;
     this.lastTurn = -1;
     this.lastMazeRequestAt = 0;
+    this.lastLobbyActionAt = 0;
 
     this.mapState = new MapState();
     this.strategy = new GameStrategy();
@@ -118,14 +119,26 @@ class Bot {
     const team = Number.parseInt(String(self.team ?? '0'), 10) || 0;
     const ready = toBoolean(self.ready);
     const targetTeam = allowTeam ? this.team : 1;
+    const need = Number.parseInt(String(data?.need ?? '0'), 10) || 0;
+    const now = Date.now();
+
+    if (now - this.lastLobbyActionAt < 1000) {
+      return;
+    }
 
     if (team === 0) {
       this.socket.emit('change_team', { team: targetTeam });
+      this.lastLobbyActionAt = now;
+      return;
+    }
+
+    if (need <= 1) {
       return;
     }
 
     if (!ready) {
       this.socket.emit('change_ready', { ready: true });
+      this.lastLobbyActionAt = now;
     }
   }
 
