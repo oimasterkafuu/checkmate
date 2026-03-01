@@ -225,15 +225,27 @@ class CaptchaService {
     const textZoneMaxX = clamp(startX + totalWidth + 10, 0, this.width);
     const textZoneMinY = clamp(startY - 8, 0, this.height);
     const textZoneMaxY = clamp(startY + glyphHeight + 8, 0, this.height);
-    const interferenceDots = Array.from({ length: 12 }, () => {
-      const nearText = randomFloat(0, 1) < 0.72;
-      const cx = nearText ? randomFloat(textZoneMinX, textZoneMaxX) : randomFloat(0, this.width);
-      const cy = nearText ? randomFloat(textZoneMinY, textZoneMaxY) : randomFloat(0, this.height);
-      // Keep interference blobs close to actual character scale.
-      const r = randomFloat(glyphWidth * 0.24, glyphWidth * 0.56).toFixed(2);
-      const opacity = randomFloat(0.18, 0.42).toFixed(2);
-      const color = randomInkColor();
-      return `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r}" fill="${color}" fill-opacity="${opacity}"/>`;
+    const interferenceDots = Array.from({ length: randomInt(34, 56) }, () => {
+      const nearText = randomFloat(0, 1) < 0.76;
+      const baseX = nearText ? randomFloat(textZoneMinX, textZoneMaxX) : randomFloat(0, this.width);
+      const baseY = nearText ? randomFloat(textZoneMinY, textZoneMaxY) : randomFloat(0, this.height);
+      const cellJitter = pixelSize * 0.14;
+      const size = randomFloat(pixelSize * 0.86, pixelSize * 1.12);
+      const x = clamp(baseX + randomFloat(-cellJitter, cellJitter) - size / 2, 0, this.width - size);
+      const y = clamp(baseY + randomFloat(-cellJitter, cellJitter) - size / 2, 0, this.height - size);
+      const centerX = x + size / 2;
+      const centerY = y + size / 2;
+      const rotate = randomInt(-24, 25);
+      const opacity = randomFloat(0.5, 0.98).toFixed(2);
+      const fill = randomInkColor();
+      const rect = `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${(pixelSize * 0.36).toFixed(2)}" ry="${(pixelSize * 0.36).toFixed(2)}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`;
+      if (randomFloat(0, 1) < 0.16) {
+        const dotX = x + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
+        const dotY = y + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
+        const dotR = randomFloat(0.32, 0.88).toFixed(2);
+        return `${rect}<circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${dotR}" fill="${randomInkColor()}" fill-opacity="${randomFloat(0.48, 0.92).toFixed(2)}"/>`;
+      }
+      return rect;
     }).join('');
 
     const letters = code
