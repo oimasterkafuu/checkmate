@@ -5,10 +5,6 @@ const BOT_ROOM = String(process.env.BOT_ROOM || '').trim();
 const BOT_TOKEN = String(process.env.BOT_TOKEN || '').trim();
 const BOT_TEAM = Math.max(1, Number.parseInt(String(process.env.BOT_TEAM || '1'), 10) || 1);
 const BOT_AUTO_READY = String(process.env.BOT_AUTO_READY || '1') !== '0';
-const BOT_ACTION_DELAY_MS = Math.max(
-  0,
-  Number.parseInt(String(process.env.BOT_ACTION_DELAY_MS || '100'), 10) || 100,
-);
 
 if (!BOT_ROOM) {
   throw new Error('Missing BOT_ROOM. Example: BOT_ROOM=abc123');
@@ -24,7 +20,6 @@ const bot = new Bot({
   token: BOT_TOKEN,
   team: BOT_TEAM,
   autoReady: BOT_AUTO_READY,
-  actionDelayMs: BOT_ACTION_DELAY_MS,
 });
 
 bot.start();

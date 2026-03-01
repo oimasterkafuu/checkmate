@@ -13,7 +13,6 @@ class Bot {
     this.token = config.token;
     this.team = config.team;
     this.autoReady = config.autoReady;
-    this.actionDelayMs = config.actionDelayMs;
 
     this.socket = null;
     this.clientId = '';
@@ -192,10 +191,7 @@ class Bot {
     if (!attack || !this.isAttackValid(attack)) {
       return;
     }
-
-    setTimeout(() => {
-      this.socket.emit('attack', attack);
-    }, this.actionDelayMs);
+    this.socket.emit('attack', attack);
   }
 
   convertMoveToAttack(move) {

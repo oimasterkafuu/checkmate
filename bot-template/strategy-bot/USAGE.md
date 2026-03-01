@@ -16,7 +16,6 @@
 - `BOT_TOKEN`：网页登录后提取的 `auth_token`（必填）
 - `BOT_TEAM`：自动分队目标，默认 `1`
 - `BOT_AUTO_READY`：是否自动准备，默认 `1`（`0` 关闭）
-- `BOT_ACTION_DELAY_MS`：每回合下发动作延迟，默认 `100`
 
 ## 运行
 
