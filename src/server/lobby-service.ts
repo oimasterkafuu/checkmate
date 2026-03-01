@@ -241,7 +241,13 @@ class LobbyService {
       return value ? '允许' : '不允许';
     }
     if (key === 'map_mode') {
-      return value === 'maze' ? '峡谷回廊' : '标准地图';
+      if (value === 'maze') {
+        return '峡谷回廊';
+      }
+      if (value === 'archipelago') {
+        return '群岛要塞';
+      }
+      return '标准地图';
     }
     return String(value);
   }

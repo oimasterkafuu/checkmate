@@ -12,7 +12,7 @@ const MOVE_DY = [0, 0, -1, 1] as const;
 type Tile = -2 | -1 | 0 | 1 | 2;
 type Grid<T> = T[][];
 type GeneralPos = [number, number];
-type MapMode = 'random' | 'maze';
+type MapMode = 'random' | 'maze' | 'archipelago';
 
 class DSU {
   private readonly parent: number[];

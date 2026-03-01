@@ -9,6 +9,7 @@ import {
   resolveMapSeed,
   resolveSeededTerrainRatio,
 } from './map/map-core';
+import { generateArchipelagoMap } from './map/archipelago-map-generator';
 import { generateMazeMap } from './map/maze-map-generator';
 import { generateRandomMap } from './map/random-map-generator';
 import { ReplayStore } from './replay-store';
@@ -424,22 +425,34 @@ export class GameEngine {
   }
 
   private async initializeMap(): Promise<void> {
-    const generated =
-      this.mapMode === 'maze'
-        ? generateMazeMap(this.rng, {
-            widthRatio: this.widthRatio,
-            heightRatio: this.heightRatio,
-            cityRatio: this.cityRatio,
-            mountainRatio: this.mountainRatio,
-            swampRatio: this.swampRatio,
-          })
-        : generateRandomMap(this.rng, {
-            widthRatio: this.widthRatio,
-            heightRatio: this.heightRatio,
-            cityRatio: this.cityRatio,
-            mountainRatio: this.mountainRatio,
-            swampRatio: this.swampRatio,
-          });
+    const requiredPlayers = this.team.filter((team) => team !== 0).length;
+    let generated;
+    if (this.mapMode === 'maze') {
+      generated = generateMazeMap(this.rng, {
+        widthRatio: this.widthRatio,
+        heightRatio: this.heightRatio,
+        cityRatio: this.cityRatio,
+        mountainRatio: this.mountainRatio,
+        swampRatio: this.swampRatio,
+      });
+    } else if (this.mapMode === 'archipelago') {
+      generated = generateArchipelagoMap(this.rng, {
+        widthRatio: this.widthRatio,
+        heightRatio: this.heightRatio,
+        cityRatio: this.cityRatio,
+        mountainRatio: this.mountainRatio,
+        swampRatio: this.swampRatio,
+        requiredPlayers,
+      });
+    } else {
+      generated = generateRandomMap(this.rng, {
+        widthRatio: this.widthRatio,
+        heightRatio: this.heightRatio,
+        cityRatio: this.cityRatio,
+        mountainRatio: this.mountainRatio,
+        swampRatio: this.swampRatio,
+      });
+    }
 
     this.n = generated.n;
     this.m = generated.m;

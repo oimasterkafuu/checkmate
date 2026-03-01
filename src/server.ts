@@ -35,7 +35,7 @@ const WEBHOOK_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 const AUTH_PAGE_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
 const AUTH_ACTION_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 const MAP_EXAMPLE_PLAYER_COUNT = 4;
-const MAP_EXAMPLE_MAP_MODES: LobbyConfig['map_mode'][] = ['random', 'maze'];
+const MAP_EXAMPLE_MAP_MODES: LobbyConfig['map_mode'][] = ['random', 'maze', 'archipelago'];
 const RATE_LIMIT_REAL_IP_HEADERS = [
   'cf-connecting-ip',
   'true-client-ip',
@@ -772,7 +772,12 @@ const boot = async (): Promise<void> => {
 
         if (hasOwn('map_mode')) {
           const mapModeRaw = String(payload.map_mode ?? oldConf.map_mode);
-          const mapMode: LobbyConfig['map_mode'] = mapModeRaw === 'maze' ? 'maze' : 'random';
+          let mapMode: LobbyConfig['map_mode'] = 'random';
+          if (mapModeRaw === 'maze') {
+            mapMode = 'maze';
+          } else if (mapModeRaw === 'archipelago') {
+            mapMode = 'archipelago';
+          }
           if (mapMode !== oldConf.map_mode) {
             nextConf.map_mode = mapMode;
             changed.push('map_mode');
