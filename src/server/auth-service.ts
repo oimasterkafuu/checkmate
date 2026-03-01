@@ -51,7 +51,7 @@ class AuthService {
     if (normalizedPathname.startsWith('/socket.io/')) {
       return true;
     }
-    if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|otf|ttf|mp3)$/i.test(normalizedPathname)) {
+    if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|otf|woff2|mp3)$/i.test(normalizedPathname)) {
       return true;
     }
     return false;
