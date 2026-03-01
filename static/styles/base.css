@@ -69,15 +69,18 @@ button.inverted:hover {
 }
 @font-face {
   font-family: HYMaQiDuo;
-  src: url('/HYMaQiDuo-45W.ttf');
+  src: url('/HYMaQiDuo-45W.subset.woff2') format('woff2');
+  font-display: swap;
 }
 @font-face {
   font-family: HYMaQiDuo-Light;
-  src: url('/HYMaQiDuo-35W.ttf');
+  src: url('/HYMaQiDuo-35W.subset.woff2') format('woff2');
+  font-display: swap;
 }
 @font-face {
   font-family: HYMaQiDuo-Bold;
-  src: url('/HYMaQiDuo-55W.ttf');
+  src: url('/HYMaQiDuo-55W.subset.woff2') format('woff2');
+  font-display: swap;
 }
 * {
   font-family: Quicksand, HYMaQiDuo;

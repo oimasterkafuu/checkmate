@@ -21,11 +21,14 @@
     <title>Checkmate!! - 回放</title>
   </head>
 
-  <body style="overflow: scroll">
+  <body style="overflow-y: auto; overflow-x: hidden">
+    <div style="position: fixed; top: 12px; left: 12px; z-index: 20">
+      <button id="back-home-btn" class="small">返回首页</button>
+    </div>
     <div style="position: fixed; top: 12px; right: 12px; z-index: 20">
       <span id="account-name" style="margin-right: 8px; font-family: Quicksand-Bold"></span>
     </div>
-    <center id="app">
+    <center id="app" style="margin-top: 84px">
       <table class="list selectable">
         <thead>
           <tr>
@@ -63,6 +66,9 @@
       function gotoReplay(id) {
         location.href = '/replays/' + id;
       }
+      document.getElementById('back-home-btn').addEventListener('click', function () {
+        location.href = '/';
+      });
       fetch('/api/auth/me')
         .then(function (res) {
           if (!res.ok) {
