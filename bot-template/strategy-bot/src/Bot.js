@@ -20,6 +20,7 @@ class Bot {
     this.playerId = 0;
     this.inGame = false;
     this.lastTurn = -1;
+    this.lastMazeRequestAt = 0;
 
     this.mapState = new MapState();
     this.strategy = new GameStrategy();
@@ -43,7 +44,6 @@ class Bot {
 
   registerEvents() {
     this.socket.on('connect', () => {
-      console.log(`[bot] connected: ${this.socket.id}`);
       this.socket.emit('join_game_room', { room: this.room });
     });
 
@@ -51,16 +51,12 @@ class Bot {
       console.error(`[bot] connect_error: ${error.message}`);
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log(`[bot] disconnected: ${reason}`);
-    });
-
     this.socket.on('set_id', (id) => {
       this.clientId = String(id || '');
-      console.log(`[bot] client_id: ${this.clientId}`);
     });
 
     this.socket.on('room_update', (data) => {
+      this.ensureMazeModeFromRoomUpdate(data);
       this.autoReadyFromRoomUpdate(data);
     });
 
@@ -77,8 +73,32 @@ class Bot {
       this.playerId = 0;
       this.lastTurn = -1;
       this.strategy.resetInitialization();
-      console.log('[bot] left current game');
     });
+  }
+
+  ensureMazeModeFromRoomUpdate(data) {
+    if (!this.clientId || !Array.isArray(data?.players) || toBoolean(data?.in_game)) {
+      return;
+    }
+
+    const hostSid = String(data.players[0]?.sid || '');
+    if (hostSid !== this.clientId) {
+      return;
+    }
+
+    const mapMode = String(data.map_mode || 'random');
+    if (mapMode === 'maze') {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastMazeRequestAt < 1000) {
+      return;
+    }
+
+    this.lastMazeRequestAt = now;
+    this.socket.emit('change_game_conf', { map_mode: 'maze' });
+    console.log('[bot] host mode: enforce map_mode=maze');
   }
 
   autoReadyFromRoomUpdate(data) {
@@ -102,13 +122,11 @@ class Bot {
 
     if (team === 0) {
       this.socket.emit('change_team', { team: targetTeam });
-      console.log(`[bot] request change_team=${targetTeam}`);
       return;
     }
 
     if (!ready) {
       this.socket.emit('change_ready', { ready: true });
-      console.log('[bot] request change_ready=true');
     }
   }
 
@@ -128,8 +146,6 @@ class Bot {
     const playerIds = Array.isArray(data?.player_ids) ? data.player_ids.map((item) => String(item)) : [];
     const foundIndex = playerIds.indexOf(this.clientId);
     this.playerId = foundIndex >= 0 ? foundIndex + 1 : 0;
-
-    console.log(`[bot] init_map ${n}x${m}, playerId=${this.playerId || 'spectator'}`);
   }
 
   handleUpdate(payload) {
@@ -150,7 +166,6 @@ class Bot {
 
     if (payload?.game_end) {
       this.inGame = false;
-      console.log(`[bot] game ended at turn ${turn}`);
       return;
     }
 
@@ -180,9 +195,6 @@ class Bot {
 
     setTimeout(() => {
       this.socket.emit('attack', attack);
-      console.log(
-        `[bot] turn ${turn}: attack (${attack.x},${attack.y}) -> (${attack.dx},${attack.dy}) half=${attack.half ? 1 : 0}`,
-      );
     }, this.actionDelayMs);
   }
 

@@ -30,3 +30,5 @@ BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token p
 
 - 核心决策仍由 `GameStrategy` 完成；本模板仅做协议与交互适配，不改核心策略算法。
 - 地图为非正方形时，适配层会以边界山体补齐成正方结构供策略计算。
+- bot 进入房间后若成为房主，会自动把 `map_mode` 设为 `maze`（峡谷回廊）。
+- 默认已移除大部分高频输出，仅保留关键错误与房主切图提示。
