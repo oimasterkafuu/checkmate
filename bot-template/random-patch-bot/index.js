@@ -3,6 +3,8 @@ const { io } = require('socket.io-client');
 const BOT_SERVER = String(process.env.BOT_SERVER || 'http://127.0.0.1:23333').trim();
 const BOT_ROOM = String(process.env.BOT_ROOM || '').trim();
 const BOT_TOKEN = String(process.env.BOT_TOKEN || '').trim();
+const BOT_TEAM = Math.max(1, Number.parseInt(String(process.env.BOT_TEAM || '1'), 10) || 1);
+const BOT_AUTO_READY = String(process.env.BOT_AUTO_READY || '1') !== '0';
 const ACTION_DELAY_MS = Math.max(
   0,
   Number.parseInt(String(process.env.BOT_ACTION_DELAY_MS || '120'), 10) || 120,
@@ -152,6 +154,40 @@ socket.on('set_id', (id) => {
   console.log(`[bot] client_id: ${state.clientId}`);
 });
 
+function toBoolean(value) {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+function autoReadyFromRoomUpdate(data) {
+  if (!BOT_AUTO_READY || !state.clientId) {
+    return;
+  }
+  if (!Array.isArray(data?.players) || toBoolean(data?.in_game)) {
+    return;
+  }
+
+  const self = data.players.find((player) => String(player?.sid || '') === state.clientId);
+  if (!self) {
+    return;
+  }
+
+  const allowTeam = toBoolean(data.allow_team);
+  const team = Number.parseInt(String(self.team ?? '0'), 10) || 0;
+  const ready = toBoolean(self.ready);
+  const targetTeam = allowTeam ? BOT_TEAM : 1;
+
+  if (team === 0) {
+    socket.emit('change_team', { team: targetTeam });
+    console.log(`[bot] request change_team=${targetTeam}`);
+    return;
+  }
+
+  if (!ready) {
+    socket.emit('change_ready', { ready: true });
+    console.log('[bot] request change_ready=true');
+  }
+}
+
 socket.on('init_map', (data) => {
   const n = Number.parseInt(String(data?.n ?? '0'), 10);
   const m = Number.parseInt(String(data?.m ?? '0'), 10);
@@ -209,6 +245,10 @@ socket.on('update', (payload) => {
 socket.on('left', () => {
   state.inGame = false;
   console.log('[bot] left current game');
+});
+
+socket.on('room_update', (data) => {
+  autoReadyFromRoomUpdate(data);
 });
 
 process.on('SIGINT', () => {

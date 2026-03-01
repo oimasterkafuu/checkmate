@@ -139,7 +139,7 @@
       </section>
 
       <section class="dev-panel">
-        <h3>机器人开发协议（当前实现）</h3>
+        <h3>交互协议</h3>
         <p>机器人与服务端通过 Socket.IO 通信，连接地址是站点同源的 <code>/socket.io/</code>。</p>
         <table class="protocol-table">
           <tr>
@@ -154,14 +154,14 @@
             <td><code>emit('join_game_room', { room })</code> 进入指定房间。</td>
           </tr>
           <tr>
-            <th>开局数据</th>
+            <th>开局</th>
             <td>
               <code>on('init_map')</code> 获取地图尺寸与玩家 ID（<code>n</code>, <code>m</code>,
               <code>player_ids</code>）。
             </td>
           </tr>
           <tr>
-            <th>逐回合更新</th>
+            <th>回合</th>
             <td>
               <code>on('update')</code> 接收地图与战局数据（<code>turn</code>, <code>is_diff</code>,
               <code>grid_type</code>, <code>army_cnt</code>, <code>leaderboard</code>,
@@ -169,7 +169,7 @@
             </td>
           </tr>
           <tr>
-            <th>操作上报</th>
+            <th>操作</th>
             <td>
               主要通过 <code>emit('attack', { x, y, dx, dy, half })</code> 发送行动，也可用
               <code>clear_queue</code>/<code>pop_queue</code> 调整队列。
@@ -186,7 +186,7 @@
         </p>
         <ol>
           <li>浏览器正常登录账号。</li>
-          <li>打开开发者工具，进入 Application/Storage -> Cookies，找到 <code>auth_token</code>。</li>
+          <li>打开开发者工具，进入 Application/Storage 下的 Cookies，找到 <code>auth_token</code>。</li>
           <li>复制 token，作为机器人进程的环境变量（例如 <code>BOT_TOKEN</code>）。</li>
         </ol>
       </section>
