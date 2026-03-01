@@ -377,11 +377,17 @@ const boot = async (): Promise<void> => {
       password?: string;
       captchaId?: string;
       captchaCode?: string;
+      website?: string;
     };
     const usernameRaw = String(body?.username ?? '');
     const password = String(body?.password ?? '');
     const captchaId = String(body?.captchaId ?? '');
     const captchaCode = String(body?.captchaCode ?? '');
+    const honeypot = String(body?.website ?? '').trim();
+
+    if (honeypot.length > 0) {
+      return reply.code(400).send({ error: '请求无效。' });
+    }
 
     const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
     if (!captchaCheck.ok) {
@@ -408,11 +414,17 @@ const boot = async (): Promise<void> => {
       password?: string;
       captchaId?: string;
       captchaCode?: string;
+      website?: string;
     };
     const usernameRaw = String(body?.username ?? '');
     const password = String(body?.password ?? '');
     const captchaId = String(body?.captchaId ?? '');
     const captchaCode = String(body?.captchaCode ?? '');
+    const honeypot = String(body?.website ?? '').trim();
+
+    if (honeypot.length > 0) {
+      return reply.code(400).send({ error: '请求无效。' });
+    }
 
     const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
     if (!captchaCheck.ok) {

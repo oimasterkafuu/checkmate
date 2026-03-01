@@ -32,6 +32,14 @@
           placeholder="密码（6-72 位）"
           style="width: 100%; box-sizing: border-box; margin-bottom: 8px; color: teal"
         />
+        <input
+          id="auth-website"
+          type="text"
+          tabindex="-1"
+          autocomplete="off"
+          aria-hidden="true"
+          style="position: absolute; left: -99999px; opacity: 0; pointer-events: none"
+        />
         <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center">
           <input
             id="auth-captcha"
@@ -96,10 +104,11 @@
           return;
         }
         try {
+          var website = String($('#auth-website').val() || '').trim();
           const res = await fetch('/api/auth/' + action, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, captchaId, captchaCode }),
+            body: JSON.stringify({ username, password, captchaId, captchaCode, website }),
           });
           const data = await res.json().catch(function () {
             return {};
