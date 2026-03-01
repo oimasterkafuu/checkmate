@@ -550,6 +550,144 @@ const placeIslandMountains = (
   }
 };
 
+const isInsideIsland = (island: IslandInfo, x: number, y: number, m: number): boolean =>
+  island.allCells.has(x * m + y);
+
+const isReachableInsideIsland = (
+  island: IslandInfo,
+  n: number,
+  m: number,
+  gridType: Tile[][],
+  start: [number, number],
+  target: [number, number],
+): boolean => {
+  if (start[0] === target[0] && start[1] === target[1]) {
+    return true;
+  }
+  const startIdx = start[0] * m + start[1];
+  const targetIdx = target[0] * m + target[1];
+  if (!island.allCells.has(startIdx) || !island.allCells.has(targetIdx)) {
+    return false;
+  }
+  if (gridType[start[0]][start[1]] === 1 || gridType[target[0]][target[1]] === 1) {
+    return false;
+  }
+
+  const queue: number[] = [startIdx];
+  const visited = new Set<number>([startIdx]);
+
+  while (queue.length > 0) {
+    const idx = queue.shift();
+    if (typeof idx === 'undefined') {
+      continue;
+    }
+    const x = Math.floor(idx / m);
+    const y = idx % m;
+
+    for (let d = 0; d < 4; d += 1) {
+      const nx = x + MOVE_DX[d];
+      const ny = y + MOVE_DY[d];
+      if (!isInBounds(n, m, nx, ny)) {
+        continue;
+      }
+      const nextIdx = nx * m + ny;
+      if (!island.allCells.has(nextIdx) || visited.has(nextIdx) || gridType[nx][ny] === 1) {
+        continue;
+      }
+      if (nextIdx === targetIdx) {
+        return true;
+      }
+      visited.add(nextIdx);
+      queue.push(nextIdx);
+    }
+  }
+
+  return false;
+};
+
+const isEdgeMountainCell = (island: IslandInfo, n: number, m: number, x: number, y: number): boolean => {
+  for (let d = 0; d < 4; d += 1) {
+    const nx = x + MOVE_DX[d];
+    const ny = y + MOVE_DY[d];
+    if (!isInBounds(n, m, nx, ny) || !isInsideIsland(island, nx, ny, m)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const fixPlayerIslandCityConnection = (
+  rng: SeededRandom,
+  n: number,
+  m: number,
+  gridType: Tile[][],
+  armyCnt: number[][],
+  playerIslands: IslandInfo[],
+): boolean => {
+  for (let i = 0; i < playerIslands.length; i += 1) {
+    const island = playerIslands[i];
+
+    let general: [number, number] | null = null;
+    let city: [number, number] | null = null;
+    for (const idx of island.allCells) {
+      const x = Math.floor(idx / m);
+      const y = idx % m;
+      if (gridType[x][y] === -2) {
+        general = [x, y];
+      }
+      if (gridType[x][y] === -1 && armyCnt[x][y] === 15) {
+        city = [x, y];
+      }
+    }
+
+    if (!general || !city) {
+      return false;
+    }
+    if (isReachableInsideIsland(island, n, m, gridType, general, city)) {
+      continue;
+    }
+
+    const protectedCenter = new Set<number>();
+    for (let j = 0; j < island.centerCells.length; j += 1) {
+      const [cx, cy] = island.centerCells[j];
+      if (gridType[cx][cy] === 1) {
+        protectedCenter.add(cx * m + cy);
+      }
+    }
+
+    const edgeMountains: Array<[number, number]> = [];
+    for (const idx of island.allCells) {
+      if (protectedCenter.has(idx)) {
+        continue;
+      }
+      const x = Math.floor(idx / m);
+      const y = idx % m;
+      if (gridType[x][y] !== 1 || !isEdgeMountainCell(island, n, m, x, y)) {
+        continue;
+      }
+      edgeMountains.push([x, y]);
+    }
+
+    shuffle(edgeMountains, rng);
+    let repaired = false;
+    for (let j = 0; j < edgeMountains.length; j += 1) {
+      const [mx, my] = edgeMountains[j];
+      gridType[mx][my] = 0;
+      if (isReachableInsideIsland(island, n, m, gridType, general, city)) {
+        repaired = true;
+        break;
+      }
+      gridType[mx][my] = 1;
+    }
+
+    if (!repaired) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const placeSwampMountains = (
   rng: SeededRandom,
   n: number,
@@ -680,6 +818,9 @@ const generateArchipelagoMap = (
 
     placeNeutralIslands(rng, n, m, gridType, armyCnt, islands, playerIslandIds);
     placeIslandMountains(rng, n, m, gridType, islands);
+    if (!fixPlayerIslandCityConnection(rng, n, m, gridType, armyCnt, selectedPlayerIslands)) {
+      continue;
+    }
     placeSwampMountains(rng, n, m, gridType, islandIdGrid, totalCells);
 
     const st = build2D(n, m, false);
