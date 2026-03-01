@@ -102,12 +102,32 @@
         gap: 8px;
         margin: 0 0 8px 0;
       }
-      .terrain-icon {
-        width: 20px;
-        height: 20px;
+      .terrain-icon-cell {
+        width: 28px;
+        height: 28px;
         flex: none;
-        object-fit: contain;
-        margin-top: 2px;
+        margin-top: 1px;
+        border: 1px solid black;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 20px 20px;
+        box-sizing: border-box;
+      }
+      .terrain-icon-cell.general {
+        background-color: red;
+        background-image: url('/crown.png');
+      }
+      .terrain-icon-cell.city {
+        background-color: gray;
+        background-image: url('/city.png');
+      }
+      .terrain-icon-cell.mountain {
+        background-color: #dcdcdc;
+        background-image: url('/mountain.png');
+      }
+      .terrain-icon-cell.swamp {
+        background-color: gray;
+        background-image: url('/swamp.png');
       }
       .terrain-text {
         margin: 0;
@@ -229,19 +249,19 @@
             <h4>地形说明</h4>
             <ul class="terrain-list">
               <li class="terrain-item">
-                <img src="/crown.png" alt="皇冠" class="terrain-icon" />
+                <span class="terrain-icon-cell general" aria-hidden="true"></span>
                 <p class="terrain-text"><b>皇冠</b>：玩家核心据点，失守即出局。</p>
               </li>
               <li class="terrain-item">
-                <img src="/city.png" alt="城市" class="terrain-icon" />
+                <span class="terrain-icon-cell city" aria-hidden="true"></span>
                 <p class="terrain-text"><b>城市</b>：提供持续兵力增长，可被争夺。</p>
               </li>
               <li class="terrain-item">
-                <img src="/mountain.png" alt="山脉" class="terrain-icon" />
+                <span class="terrain-icon-cell mountain" aria-hidden="true"></span>
                 <p class="terrain-text"><b>山脉</b>：阻挡移动的不可通行地形。</p>
               </li>
               <li class="terrain-item">
-                <img src="/swamp.png" alt="沼泽" class="terrain-icon" />
+                <span class="terrain-icon-cell swamp" aria-hidden="true"></span>
                 <p class="terrain-text"><b>沼泽</b>：占领后会持续消耗兵力。</p>
               </li>
             </ul>
