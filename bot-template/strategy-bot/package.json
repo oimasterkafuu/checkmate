@@ -1,0 +1,12 @@
+{
+  "name": "strategy-bot-template",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Checkmate strategy bot template adapted from kanabot bot3",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}
