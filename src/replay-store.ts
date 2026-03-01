@@ -99,7 +99,14 @@ export class ReplayStore {
   }
 
   async loadReplay(id: string): Promise<ReplayData> {
-    const replayPath = path.join(this.replayDir, `${id}${REPLAY_EXT}`);
+    if (!isReplayIdValid(id)) {
+      throw new Error('Invalid replay id.');
+    }
+    const replayPath = path.resolve(this.replayDir, `${id}${REPLAY_EXT}`);
+    const replayRoot = `${path.resolve(this.replayDir)}${path.sep}`;
+    if (!replayPath.startsWith(replayRoot)) {
+      throw new Error('Invalid replay path.');
+    }
     const content = await readFile(replayPath);
     const replay = await decodeReplayBinary<ReplayActionData>(content);
     return this.buildReplayFromActions(replay);

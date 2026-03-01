@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
@@ -26,6 +27,10 @@ const lobbyService = new LobbyService(replayStore);
 const webhookUpdater = new WebhookUpdater(app.log, runtimeEnv.webhookSecret);
 
 type PushWebhookPayload = { ref?: unknown };
+const GENERAL_RATE_LIMIT = { max: 1000, timeWindow: '1 minute' };
+const WEBHOOK_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
+const AUTH_PAGE_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
+const AUTH_ACTION_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 
 const parseJsonObject = (text: string): Record<string, unknown> | null => {
   try {
@@ -98,6 +103,12 @@ const boot = async (): Promise<void> => {
   await replayStore.ensureReady();
   await userStore.ensureReady();
 
+  await app.register(fastifyRateLimit, {
+    max: GENERAL_RATE_LIMIT.max,
+    timeWindow: GENERAL_RATE_LIMIT.timeWindow,
+  });
+  app.addHook('onRequest', app.rateLimit(GENERAL_RATE_LIMIT));
+
   app.addHook('onRequest', async (request, reply) => {
     const pathname = request.url.split('?')[0];
     if (authService.isPublicPath(pathname)) {
@@ -122,11 +133,13 @@ const boot = async (): Promise<void> => {
   });
 
   await app.register(async (webhookApp) => {
+    const webhookRateLimitPreHandler = webhookApp.rateLimit(WEBHOOK_RATE_LIMIT);
+
     webhookApp.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, done) => {
       done(null, payload);
     });
 
-    webhookApp.post('/postreceive', async (request, reply) => {
+    webhookApp.post('/postreceive', { preHandler: webhookRateLimitPreHandler }, async (request, reply) => {
       const body = request.body;
       const rawBody = Buffer.isBuffer(body)
         ? body
@@ -165,7 +178,10 @@ const boot = async (): Promise<void> => {
     });
   });
 
-  app.get('/login', async (request, reply) => {
+  const authPageRateLimitPreHandler = app.rateLimit(AUTH_PAGE_RATE_LIMIT);
+  const authActionRateLimitPreHandler = app.rateLimit(AUTH_ACTION_RATE_LIMIT);
+
+  app.get('/login', { preHandler: authPageRateLimitPreHandler }, async (request, reply) => {
     const token = authService.getTokenFromCookie(request.headers.cookie);
     const authUser = authService.verifyAuthToken(token);
     if (authUser) {
@@ -174,11 +190,11 @@ const boot = async (): Promise<void> => {
     return reply.sendFile('login.html');
   });
 
-  app.get('/api/auth/captcha', async (_request, reply) => {
+  app.get('/api/auth/captcha', { preHandler: authActionRateLimitPreHandler }, async (_request, reply) => {
     return reply.send(captchaService.createChallenge());
   });
 
-  app.post('/api/auth/register', async (request, reply) => {
+  app.post('/api/auth/register', { preHandler: authActionRateLimitPreHandler }, async (request, reply) => {
     const body = request.body as {
       username?: string;
       password?: string;
@@ -209,7 +225,7 @@ const boot = async (): Promise<void> => {
     }
   });
 
-  app.post('/api/auth/login', async (request, reply) => {
+  app.post('/api/auth/login', { preHandler: authActionRateLimitPreHandler }, async (request, reply) => {
     const body = request.body as {
       username?: string;
       password?: string;
@@ -239,9 +255,8 @@ const boot = async (): Promise<void> => {
     return reply.send({ username });
   });
 
-  app.post('/api/auth/logout', async (request, reply) => {
-    const token = authService.getTokenFromCookie(request.headers.cookie);
-    const authUser = authService.verifyAuthToken(token);
+  app.post('/api/auth/logout', { preHandler: authActionRateLimitPreHandler }, async (request, reply) => {
+    const authUser = (request as AuthRequest).authUser;
     if (authUser) {
       await userStore.clearSession(authUser.username);
       authService.disconnectUserSockets(authUser.username);
