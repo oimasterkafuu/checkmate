@@ -104,10 +104,9 @@
     </div>
 
     <div id="app">
-      <h1 class="dev-title">开发 Checkmate!!</h1>
+      <h1 class="dev-title">参与 Checkmate!! 的开发</h1>
       <p class="dev-subtitle">
-        你在游玩时如果有新想法，也可以直接参与开发。无论是网站功能还是机器人脚本，都欢迎你把改动做成可审阅、可合并的
-        PR。
+        众人拾柴火焰高。在游玩时，如果你有新想法，欢迎参与开发。
       </p>
 
       <section class="dev-panel">
@@ -192,20 +191,41 @@
       </section>
 
       <section class="dev-panel">
-        <h3>机器人模板：自动 patch 地图 + 随机动作</h3>
+        <h3>机器人模板</h3>
         <p>
-          仓库已提供模板目录：
-          <code>bot-template/random-patch-bot</code>
+          仓库已提供机器人模板：
+          <a
+            class="dev-link"
+            href="https://github.com/oimasterkafuu/checkmate/tree/main/bot-template/random-patch-bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            >
+            <code>bot-template/random-patch-bot</code>
+          </a>
         </p>
         <p>
-          这个模板会在每个回合消费 <code>update</code>，自动应用全量/增量 patch
-          到本地地图状态，然后从“当前可执行动作集合”中随机选一个动作发送。
+          这个模板会在每个回合自动更新地图，然后从“当前可执行动作集合”中随机选一个动作发送。
         </p>
         <pre class="code-snippet"><code># 运行示例
 cd bot-template/random-patch-bot
 pnpm install
 BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token pnpm start</code></pre>
         <p style="margin-top: 10px">你可以在模板基础上继续增加策略模块、路径规划、风险评估与回放分析。</p>
+        <p>
+          除此之外，你也可以参考另一个机器人模板，它有更复杂的决策策略：
+          <a
+            class="dev-link"
+            href="https://github.com/oimasterkafuu/checkmate/tree/main/bot-template/strategy-bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            >
+            <code>bot-template/strategy-bot</code>
+          </a>
+          <div class="dev-strong-checklist">
+            <b>主仓库不接受机器人 PR，除非是对 <code>strategy-bot</code> 的改动，简洁其代码，增加其教育意义。</b>
+          </div>
+        </p>
+
       </section>
     </div>
 
