@@ -620,7 +620,7 @@ const generateArchipelagoMap = (
 
     const totalCells = n * m;
     const targetIslandCount = requiredPlayers * 2 + 1;
-    const targetIslandArea = Math.floor(totalCells / 2) + 1;
+    const targetIslandArea = Math.max(1, Math.ceil(totalCells * 0.3));
 
     let islandArea = 0;
     let nextIslandId = 0;
