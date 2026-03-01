@@ -55,6 +55,20 @@ interface GameCallbacks {
   replayStore: ReplayStore;
 }
 
+const clampMapSizeRatio = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    return 0.5;
+  }
+  return Math.max(0.2, Math.min(1.2, value));
+};
+
+const resolveRuntimeMapSizeRatio = (ratio: number, mapSizeVersion: 1 | 2): number => {
+  if (mapSizeVersion === 1) {
+    return ratio / 2 + 0.5;
+  }
+  return ratio;
+};
+
 export class GameEngine {
   private readonly update: (sid: string, data: UpdatePayload) => void;
 
@@ -189,9 +203,10 @@ export class GameEngine {
     this.rng = new SeededRandom(this.mapSeed);
     const seededCityRatio = resolveSeededTerrainRatio(this.mapSeed, 'city_ratio');
     const seededMountainRatio = resolveSeededTerrainRatio(this.mapSeed, 'mountain_ratio');
+    const mapSizeVersion: 1 | 2 = gameConf.map_size_version ?? (gid === '__replay_build__' ? 1 : 2);
 
-    this.widthRatio = gameConf.width_ratio / 2 + 0.5;
-    this.heightRatio = gameConf.height_ratio / 2 + 0.5;
+    this.widthRatio = clampMapSizeRatio(resolveRuntimeMapSizeRatio(gameConf.width_ratio, mapSizeVersion));
+    this.heightRatio = clampMapSizeRatio(resolveRuntimeMapSizeRatio(gameConf.height_ratio, mapSizeVersion));
     this.cityRatio = seededCityRatio;
     this.mountainRatio = seededMountainRatio;
     this.swampRatio = gameConf.swamp_ratio;
@@ -207,6 +222,7 @@ export class GameEngine {
       map_mode: gameConf.map_mode,
       player_names: [...gameConf.player_names],
       player_teams: [...gameConf.player_teams],
+      map_size_version: mapSizeVersion,
     };
 
     const pcnt = playerSids.length;
@@ -264,6 +280,7 @@ export class GameEngine {
       {
         ...meta,
         allow_team: meta.allow_team ?? false,
+        map_size_version: meta.map_size_version ?? 1,
       },
       dummyPlayerSids,
       dummyPlayerIds,
@@ -293,6 +310,7 @@ export class GameEngine {
       {
         ...replay.meta,
         allow_team: replay.meta.allow_team ?? false,
+        map_size_version: replay.meta.map_size_version ?? 1,
       },
       dummyPlayerSids,
       dummyPlayerIds,

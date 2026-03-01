@@ -97,6 +97,7 @@ export interface ReplayData {
 export interface GameConfig extends LobbyConfig {
   player_names: string[];
   player_teams: number[];
+  map_size_version?: 1 | 2;
 }
 
 export interface ReplayMeta {
@@ -111,6 +112,7 @@ export interface ReplayMeta {
   map_mode: 'random' | 'maze';
   player_names: string[];
   player_teams: number[];
+  map_size_version?: 1 | 2;
 }
 
 export interface ReplayListItem {
