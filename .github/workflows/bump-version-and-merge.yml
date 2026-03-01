@@ -277,6 +277,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const prNumber = Number('${{ steps.pr.outputs.pr_number }}');
+            const headRef = '${{ steps.pr.outputs.head_ref }}';
             const mergeMethod = '${{ steps.request.outputs.merge_method }}';
             const newVersion = '${{ steps.bump.outputs.new_version }}';
             const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -346,6 +347,24 @@ jobs:
 
                 const { data } = await github.rest.pulls.merge(mergeRequest);
                 core.info(`Merged PR #${prNumber}: ${data.sha}`);
+
+                if (!headRef.startsWith('dev/')) {
+                  core.info(`Skip deleting branch ${headRef}: branch name does not start with dev/.`);
+                  return;
+                }
+
+                const ref = `heads/${headRef}`;
+                try {
+                  await github.rest.git.deleteRef({ owner, repo, ref });
+                  core.info(`Deleted merged branch: ${headRef}`);
+                } catch (error) {
+                  if (error?.status === 404) {
+                    core.info(`Branch already deleted: ${headRef}`);
+                    return;
+                  }
+
+                  throw error;
+                }
                 return;
               } catch (error) {
                 lastError = error;

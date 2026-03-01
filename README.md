@@ -74,3 +74,6 @@ pnpm run start
   - 源分支名以 `dev/` 开头
   - 源分支来自当前仓库（不处理 fork 仓库分支）
 - 删除方式：调用 GitHub API 删除 `refs/heads/<head_ref>`
+
+另外，`Bump Version And Merge PR` 在自动 merge 成功后，也会在同一次运行内直接删除 `dev/*` 分支。  
+这样即使自动 merge 由 `GITHUB_TOKEN` 发起，仍能稳定完成分支清理。
