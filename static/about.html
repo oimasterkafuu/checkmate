@@ -73,6 +73,51 @@
         font-size: 13px;
         opacity: 0.78;
       }
+      .rule-intro-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .rule-block h4 {
+        margin: 0 0 8px 0;
+        font-size: 15px;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .rule-list {
+        margin: 0;
+        padding-left: 18px;
+        line-height: 1.7;
+      }
+      .rule-list li {
+        margin: 0 0 4px 0;
+      }
+      .terrain-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .terrain-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0 0 8px 0;
+      }
+      .terrain-icon {
+        width: 20px;
+        height: 20px;
+        flex: none;
+        object-fit: contain;
+        margin-top: 2px;
+      }
+      .terrain-text {
+        margin: 0;
+        line-height: 1.6;
+      }
+      @media (max-width: 760px) {
+        .rule-intro-grid {
+          grid-template-columns: 1fr;
+        }
+      }
       .map-example-toolbar {
         display: flex;
         align-items: center;
@@ -169,13 +214,39 @@
       </section>
 
       <section class="about-panel">
-        <h3>地图示例（4 人）</h3>
-        <p>下方示例由服务器实时生成，展示“标准地图”“峡谷回廊”“群岛要塞”的地形差异。</p>
-        <div class="map-example-toolbar">
-          <button id="refresh-map-examples-btn" class="small">刷新示例</button>
-          <span id="map-example-status" class="map-example-status"></span>
+        <h3>基础规则与地形</h3>
+        <div class="rule-intro-grid">
+          <div class="rule-block">
+            <h4>基本规则</h4>
+            <ul class="rule-list">
+              <li>每位玩家有 1 座皇冠，皇冠被攻陷即被淘汰并被接管。</li>
+              <li>城市与皇冠每 2 回合增兵，所有领地每 50 回合增兵。</li>
+              <li>山脉不可通行；沼泽会持续损兵，兵力为 0 时会失去控制。</li>
+              <li>地图模式会影响地形结构与前期扩张路线。</li>
+            </ul>
+          </div>
+          <div class="rule-block">
+            <h4>地形说明</h4>
+            <ul class="terrain-list">
+              <li class="terrain-item">
+                <img src="/crown.png" alt="皇冠" class="terrain-icon" />
+                <p class="terrain-text"><b>皇冠</b>：玩家核心据点，失守即出局。</p>
+              </li>
+              <li class="terrain-item">
+                <img src="/city.png" alt="城市" class="terrain-icon" />
+                <p class="terrain-text"><b>城市</b>：提供持续兵力增长，可被争夺。</p>
+              </li>
+              <li class="terrain-item">
+                <img src="/mountain.png" alt="山脉" class="terrain-icon" />
+                <p class="terrain-text"><b>山脉</b>：阻挡移动的不可通行地形。</p>
+              </li>
+              <li class="terrain-item">
+                <img src="/swamp.png" alt="沼泽" class="terrain-icon" />
+                <p class="terrain-text"><b>沼泽</b>：占领后会持续消耗兵力。</p>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div id="map-example-grid" class="map-example-grid"></div>
       </section>
 
       <section class="about-panel">
@@ -247,6 +318,16 @@
           第三方来源或参考内容分别遵循其原始许可证（如 BSD 3-Clause、MIT）。
         </p>
         <p class="about-note">具体条款请以项目中的 LICENSE 文件与原始仓库声明为准。</p>
+      </section>
+
+      <section class="about-panel">
+        <h3>地图示例（4 人）</h3>
+        <p>下方示例由服务器实时生成，展示“标准地图”“峡谷回廊”“群岛要塞”的地形差异。</p>
+        <div class="map-example-toolbar">
+          <button id="refresh-map-examples-btn" class="small">刷新示例</button>
+          <span id="map-example-status" class="map-example-status"></span>
+        </div>
+        <div id="map-example-grid" class="map-example-grid"></div>
       </section>
     </div>
 
