@@ -7,7 +7,7 @@
 适配层与交互层位于：
 
 - `src/Bot.js`：Socket.IO 交互、自动准备、回合驱动、动作下发
-- `src/state/MapState.js`：`update` patch 应用、地图协议转译（新协议 -> bot3 gm 结构）
+- `src/state/MapState.js`：`update` patch 应用、地图协议转译（新协议 -> 策略期望的 `gm` 结构）
 
 ## 环境变量
 
