@@ -141,7 +141,6 @@ class GameStrategy {
    * 重置初始化状态，用于新游戏开始时重新计算皇冠距离
    */
   resetInitialization() {
-    // console.log('[Bot2] 重置皇冠距离地图初始化状态');
     this.isInitialized = false;
     this.crownDistanceMap = null;
 
@@ -249,9 +248,6 @@ class GameStrategy {
       const suspectedCrowns = this.knownCrowns.filter(
         (c) => c.suspected
       ).length;
-      console.log(
-        `[Bot3] 视野统计: 已见皇冠${seenCrowns}个, 推测皇冠${suspectedCrowns}个, 排除位置${this.knownNotCrowns.size}个`
-      );
     }
   }
 
@@ -293,9 +289,6 @@ class GameStrategy {
             if (false) {
               // 调试输出
               const crownType = crown.suspected ? "推测" : "已见";
-              console.log(
-                `[Bot3] ${crownType}皇冠(${x},${y})已被攻下，移除目标`
-              );
             }
           }
         } else {
@@ -400,9 +393,6 @@ class GameStrategy {
 
             if (false) {
               // 调试输出
-              console.log(
-                `[Bot3] 推测皇冠位置: (${i},${j}) 颜色:${enemyColor} (三面环山已见，一面敌方城市)`
-              );
             }
           }
         }
@@ -1062,14 +1052,6 @@ class GameStrategy {
     // 调试输出（可选）
     if (false) {
       // 可以设置为true来查看战线推进计算
-      console.log(
-        `[Bot4] 回合:${
-          this.roundCount
-        } 目标(${targetX},${targetY}) 我方控制:${myControlCount} 皇冠距离:${crownDistance} 皇冠加成:${crownBonus} 基础优先级:${basePriority} 最终优先级:${finalPriority} 类型:${this.getTargetTypeName(
-          targetCell,
-          myColor
-        )}`
-      );
     }
 
     return finalPriority;
@@ -1164,9 +1146,6 @@ class GameStrategy {
       ) {
         if (false) {
           // 调试输出
-          console.log(
-            `[Bot4] 攻击不安全: 目标(${targetX},${targetY}) 剩余兵力${remainingForce} <= 敌方城市(${adjX},${adjY})兵力${adjCell.amount}-1`
-          );
         }
         return false; // 不安全，敌方城市可以反击
       }
@@ -1308,7 +1287,6 @@ class GameStrategy {
 
     // 每500回合检查一次
     if (false && this.roundCount % 500 === 0) {
-      console.log(`[Bot2] 第${this.roundCount}回合，检查强制移动标志`);
 
       // 找到我方最大兵力的格子
       let maxCell = null;
@@ -1331,14 +1309,8 @@ class GameStrategy {
         if (
           this.isEdgeCellWithEnemy(gameMap, maxCell.x, maxCell.y, myColor, size)
         ) {
-          console.log(
-            `[Bot2] 最大兵力格子(${maxCell.x},${maxCell.y})已在边缘，取消强制移动标志`
-          );
           this.forceMoveFlag = false;
         } else {
-          console.log(
-            `[Bot2] 激活强制移动标志，最大兵力格子: (${maxCell.x},${maxCell.y}) 兵力: ${maxCell.amount}`
-          );
           this.forceMoveFlag = true;
         }
       }
@@ -1687,13 +1659,6 @@ class GameStrategy {
       // 设置为true查看扩张决策
       const fromCell = gameMap[bestMove.fromX][bestMove.fromY];
       const targetCell = gameMap[bestMove.toX][bestMove.toY];
-      console.log(
-        `[Bot4] 智能扩张: (${bestMove.fromX},${bestMove.fromY}):${
-          fromCell.amount
-        }兵 -> (${bestMove.toX},${bestMove.toY}):${targetCell.amount}兵 ${
-          bestMove.half ? "半兵" : "全兵"
-        } 价值:${bestMove.value.toFixed(1)}`
-      );
     }
 
     return {
@@ -1750,9 +1715,6 @@ class GameStrategy {
       size
     );
     if (this.debugDefense && emergencyDefense) {
-      console.log(
-        `[Debug-Defense] 回合${this.roundCount} 触发应急守家移动: (${emergencyDefense.fromX},${emergencyDefense.fromY})->(${emergencyDefense.toX},${emergencyDefense.toY})`
-      );
     }
     if (emergencyDefense) {
       return emergencyDefense;
@@ -1780,13 +1742,9 @@ class GameStrategy {
 
       if (maxCell) {
         if (!this.isEdgeCell(gameMap, maxCell.x, maxCell.y, myColor, size)) {
-          console.log(`[Bot2] 强制移动激活，跳过规则1，直接执行规则2`);
           // 跳过规则1，直接执行规则2
         } else {
           // 最大兵力格子已在边缘，取消强制移动
-          console.log(
-            `[Bot2] 最大兵力格子(${maxCell.x},${maxCell.y})已在边缘，取消强制移动`
-          );
           this.forceMoveFlag = false;
         }
       }
@@ -1873,15 +1831,6 @@ class GameStrategy {
         if (defensiveMove) {
           if (false) {
             // 可以设置为true来查看防御扩张日志
-            console.log(
-              `[Bot4] 回合${this.roundCount} 检测到敌人威胁，执行防御性扩张: (${
-                defensiveMove.fromX
-              },${defensiveMove.fromY}) -> (${defensiveMove.toX},${
-                defensiveMove.toY
-              }) ${defensiveMove.half ? "半兵" : "全兵"} 皇冠距离:${
-                defensiveMove.crownDistance
-              }`
-            );
           }
           return defensiveMove;
         }
@@ -1894,13 +1843,6 @@ class GameStrategy {
       if (expansionMove) {
         if (false) {
           // 可以设置为true来查看扩张日志
-          console.log(
-            `[Bot3] 执行智能扩张: (${expansionMove.fromX},${
-              expansionMove.fromY
-            }) -> (${expansionMove.toX},${expansionMove.toY}) ${
-              expansionMove.half ? "半兵" : "全兵"
-            }`
-          );
         }
         return expansionMove;
       }
@@ -1913,7 +1855,6 @@ class GameStrategy {
     }
 
     // 如果新算法没有找到合适的移动，回退到原始算法作为备选
-    // console.log(`[规则2] 新算法未找到移动，使用原始算法作为备选`);
 
     // 找到所有我方格子并按兵力排序
     const myCells = [];
@@ -2131,16 +2072,6 @@ class GameStrategy {
           if (false) {
             // 调试输出
             const crownType = crown.suspected ? "推测" : "已见";
-            console.log(
-              `[Bot3] 快速攻击${crownType}皇冠(${crown.x},${crown.y})! 路径推进: (${pos.x},${pos.y}) -> (${nextPos.x},${nextPos.y})`
-            );
-            console.log(
-              `[Bot3] 短距离路径(${pathInfo.pathLength}<12): 我方${
-                pathInfo.pathMyForce
-              } > 需要${pathInfo.requiredForce.toFixed(1)} (阻挡${
-                pathInfo.pathObstacleForce
-              } * 1.2 + 长度${pathInfo.pathLength})`
-            );
           }
 
           return {
@@ -2346,17 +2277,6 @@ class GameStrategy {
       if (false) {
         // 设置为true查看调试信息
         const fxInfo = cellFxInfo.get(`${bestCell.x},${bestCell.y}`);
-        console.log(
-          `[规则2-改进] 选择格子(${bestCell.x},${
-            bestCell.y
-          }) Fx=${bestCell.fx.toFixed(3)} 距离=${bestCell.distance} 路径兵力=${
-            bestCell.totalForce
-          } 边缘敌方兵力=${fxInfo.maxEnemyForce || 0} 净兵力=${
-            bestCell.totalForce - (fxInfo.maxEnemyForce || 0)
-          } 兵力比例=${(
-            bestCell.totalForce / (fxInfo.maxEnemyForce || 1)
-          ).toFixed(2)}`
-        );
       }
 
       return {
@@ -3004,7 +2924,6 @@ class GameStrategy {
   isSmallMapOrCloseCompetition(gameMap, myColor, size) {
     // 小地图判断：地图大小小于等于25
     if (size <= 13) {
-      // console.log(`[Bot4] 小地图检测：地图大小${size}，使用简化策略`);
       return true;
     }
 
@@ -3055,11 +2974,9 @@ class GameStrategy {
 
     // 如果最近的皇冠距离小于18，使用简化策略
     if (minCrownDistance < 18) {
-      // console.log(`[Bot4] 皇冠距离检测：最近距离${minCrownDistance}，使用简化策略`);
       return true;
     }
 
-    // console.log(`[Bot4] 正常策略：地图大小${size}，最近皇冠距离${minCrownDistance}`);
     return false;
   }
 
@@ -3192,14 +3109,6 @@ class GameStrategy {
     // 调试输出（可选）
     if (false) {
       // 可以设置为true来查看兵力优势计算
-      console.log(
-        `[Bot4-Bot3Style] 回合:${
-          this.roundCount
-        } 目标(${targetX},${targetY}) 兵力优势:${forceAdvantage} 皇冠距离:${crownDistance} 皇冠加成:${crownBonus} 基础优先级:${priority} 最终优先级:${finalPriority} 类型:${this.getTargetTypeName(
-          targetCell,
-          myColor
-        )}`
-      );
     }
 
     return finalPriority;
@@ -3207,9 +3116,6 @@ class GameStrategy {
 
   getEmergencyDefenseMove(gameMap, myColor, size, threatX, threatY) {
     if (this.debugDefense) {
-      console.log(
-        `[Debug-Defense] 评估拦截 (${threatX},${threatY}) 周围可用我方格子...`
-      );
     }
     if (!threatX || !threatY) return null;
     const enemyCell =
@@ -3234,9 +3140,6 @@ class GameStrategy {
     }
     if (bestMove) {
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 选择拦截移动: (${bestMove.fromX},${bestMove.fromY})->(${threatX},${threatY}) 可用兵力:${bestForce} 敌军:${enemyAmount}`
-        );
       }
       return {
         fromX: bestMove.fromX,
@@ -3247,9 +3150,6 @@ class GameStrategy {
       };
     }
     if (this.debugDefense) {
-      console.log(
-        `[Debug-Defense] 未找到足够兵力拦截 (${threatX},${threatY})，enemyAmount=${enemyAmount}`
-      );
     }
     return null;
   }
@@ -3257,11 +3157,6 @@ class GameStrategy {
   handleEnemyMovementThreat(gameMap, myColor, size) {
     const info = this.trackEnemyMovements(gameMap, myColor, size);
     if (this.debugDefense) {
-      console.log(
-        `[Debug-Defense] 回合${this.roundCount} threat=${info.threat} lastPos=${
-          info.lastPos ? `${info.lastPos.x},${info.lastPos.y}` : "null"
-        } enemyColor=${info.enemyColor}`
-      );
     }
     const crown = this.findMyCrown(gameMap, myColor, size);
     if (info.lastPos && crown) {
@@ -3272,16 +3167,10 @@ class GameStrategy {
         crown.y
       );
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] EnemyAttackPath: ${attackPath
-            .map((p) => `(${p.x},${p.y})`)
-            .join("->")}`
-        );
       }
     }
     if (info.threat && info.lastPos) {
       if (this.debugDefense) {
-        console.log("info.threat && info.lastPos");
       }
 
       // 威胁评估：检查敌人是否真的构成威胁
@@ -3294,7 +3183,6 @@ class GameStrategy {
       );
       if (!isThreatValid) {
         if (this.debugDefense) {
-          console.log(`[Debug-Defense] 敌人兵力不足，不构成真正威胁，继续微操`);
         }
         return null; // 不触发防御，继续正常逻辑
       }
@@ -3309,7 +3197,6 @@ class GameStrategy {
       if (move) {
         if (this.debugDefense) {
           const interceptPath = `(${move.fromX},${move.fromY})->(${move.toX},${move.toY})`;
-          console.log(`[Debug-Defense] InterceptPath: ${interceptPath}`);
         }
         return move;
       }
@@ -3324,9 +3211,6 @@ class GameStrategy {
       );
       if (gatherMove) {
         if (this.debugDefense)
-          console.log(
-            "[Debug-Defense] Gather strategy activated (continuous threat)"
-          );
         return gatherMove;
       }
     }
@@ -3335,20 +3219,12 @@ class GameStrategy {
     const immediate = this.findClosestEnemyNearCrown(gameMap, myColor, size, 7);
     if (immediate) {
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 发现敌人进入皇冠近距(${immediate.distance})格 (${immediate.x},${immediate.y}) 兵力:${immediate.amount}`
-        );
         if (crown) {
           const attackPath = this.reconstructPathToCrown(
             immediate.x,
             immediate.y,
             crown.x,
             crown.y
-          );
-          console.log(
-            `[Debug-Defense] EnemyAttackPath: ${attackPath
-              .map((p) => `(${p.x},${p.y})`)
-              .join("->")}`
           );
         }
       }
@@ -3363,9 +3239,6 @@ class GameStrategy {
       );
       if (!isThreatValid) {
         if (this.debugDefense) {
-          console.log(
-            `[Debug-Defense] 近距离敌人兵力不足，不构成真正威胁，继续微操`
-          );
         }
         return null; // 不触发防御，继续正常逻辑
       }
@@ -3377,11 +3250,9 @@ class GameStrategy {
         immediate.x,
         immediate.y
       );
-      // console.log('move', move);
       if (move) {
         if (this.debugDefense) {
           const interceptPath = `(${move.fromX},${move.fromY})->(${move.toX},${move.toY})`;
-          console.log(`[Debug-Defense] InterceptPath: ${interceptPath}`);
         }
         return move;
       }
@@ -3396,9 +3267,6 @@ class GameStrategy {
       );
       if (gatherMove) {
         if (this.debugDefense)
-          console.log(
-            "[Debug-Defense] Gather strategy activated (continuous threat)"
-          );
         return gatherMove;
       }
     }
@@ -3408,7 +3276,6 @@ class GameStrategy {
 
   trackEnemyMovements(gameMap, myColor, size) {
     if (this.debugDefense) {
-      console.log("[Debug-Defense] 开始跟踪敌人移动变化");
     }
     const result = { threat: false, lastPos: null, enemyColor: null };
     // 初始化 previousColorMap
@@ -3495,16 +3362,12 @@ class GameStrategy {
           result.lastPos = history[2];
           result.enemyColor = color;
           if (this.debugDefense) {
-            console.log(
-              `[Debug-Defense] 发现敌人${color} 连续逼近皇冠: (${history[0].x},${history[0].y})->(${history[1].x},${history[1].y})->(${history[2].x},${history[2].y})`
-            );
           }
         }
       }
     }
 
     if (this.debugDefense) {
-      console.log("[Debug-Defense] 跟踪结果", JSON.stringify(result));
     }
 
     return result;
@@ -3532,7 +3395,6 @@ class GameStrategy {
 
   // 如果无法直接拦截，尝试在敌人抵达前把己方兵力集中到皇冠附近
   attemptCollectDefenseMove(gameMap, myColor, size, threatX, threatY) {
-    // console.log('attemptCollectDefenseMove');
     const crown = this.findMyCrown(gameMap, myColor, size);
     if (!crown) return null;
     const threatDistance = this.getCrownDistance(threatX, threatY);
@@ -3552,12 +3414,6 @@ class GameStrategy {
 
     // 分析路径上每个点的集兵能力
     if (this.debugDefense) {
-      console.log(`[Debug-Defense] 开始分析攻击路径上每个点的集兵能力:`);
-      console.log(
-        `[Debug-Defense] 攻击路径: ${attackPath
-          .map((p) => `(${p.x},${p.y})`)
-          .join("->")}`
-      );
     }
 
     const pathAnalysis = this.analyzeDefensePathPoints(
@@ -3575,7 +3431,6 @@ class GameStrategy {
     let maxGatherForce = 0;
 
     if (this.debugDefense) {
-      console.log(`[Debug-Defense] 分析所有拦截点的集兵能力:`);
     }
 
     for (let i = 0; i < pathAnalysis.length; i++) {
@@ -3587,11 +3442,6 @@ class GameStrategy {
       const canWin = point.maxGatherForce >= enemyForceAtPoint;
 
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 拦截点${i}: (${point.x},${point.y}) 我方:${
-            point.maxGatherForce
-          } 敌方:${enemyForceAtPoint} ${canWin ? "✅可胜" : "❌劣势"}`
-        );
       }
 
       // 选择能集结最多兵力的点，优先选择能完全阻止的点
@@ -3614,17 +3464,7 @@ class GameStrategy {
           1,
           enemyCell.amount - bestInterceptPoint.stepsFromThreat
         );
-        console.log(
-          `[Debug-Defense] 最佳拦截策略: 点${bestInterceptIndex}(${
-            bestInterceptPoint.x
-          },${bestInterceptPoint.y}) 我方:${
-            bestInterceptPoint.maxGatherForce
-          } 敌方:${enemyForceAtBest} ${
-            bestInterceptPoint.canWin ? "完全拦截" : "最大伤害拦截"
-          }`
-        );
       } else {
-        console.log(`[Debug-Defense] 未找到任何可用拦截点`);
       }
     }
 
@@ -3640,13 +3480,6 @@ class GameStrategy {
       // 如果我方能集结的兵力不足敌方的10%，认为拦截无效
       if (interceptEffectiveness < 0.1) {
         if (this.debugDefense) {
-          console.log(
-            `[Debug-Defense] 拦截效果太弱 ${
-              bestInterceptPoint.maxGatherForce
-            }/${enemyForceAtBest} = ${(interceptEffectiveness * 100).toFixed(
-              1
-            )}% < 10%，放弃拦截策略`
-          );
         }
         return null; // 放弃拦截，让其他策略处理
       }
@@ -3693,12 +3526,6 @@ class GameStrategy {
           };
 
           if (this.debugDefense) {
-            console.log(
-              `[Debug-Defense] 拦截移动: (${optimalSource.x},${optimalSource.y})->(${toX},${toY}) 目标拦截点(${bestInterceptPoint.x},${bestInterceptPoint.y})`
-            );
-            console.log(
-              `[Debug-Defense] 拦截详情: 移动兵力${optimalSource.force} 预计可集结${bestInterceptPoint.maxGatherForce} VS 敌方${enemyForceAtBest}`
-            );
           }
           return {
             fromX: optimalSource.x,
@@ -3712,7 +3539,6 @@ class GameStrategy {
 
       // 如果拦截点的兵源都无法移动，寻找最有效的防御单位
       if (this.debugDefense) {
-        console.log(`[Debug-Defense] 拦截点兵源无法移动，寻找最有效的防御单位`);
       }
 
       let bestDefenseUnit = null;
@@ -3803,18 +3629,6 @@ class GameStrategy {
           };
 
           if (this.debugDefense) {
-            console.log(
-              `[Debug-Defense] 备用拦截移动: (${bestDefenseUnit.x},${bestDefenseUnit.y})->(${toX},${toY}) 目标拦截点(${bestInterceptPoint.x},${bestInterceptPoint.y})`
-            );
-            console.log(
-              `[Debug-Defense] 备用拦截: 兵力${
-                bestDefenseUnit.availableForce
-              } 距离${
-                bestDefenseUnit.distance
-              } 评分${bestDefenseUnit.score.toFixed(
-                1
-              )} VS 敌方${enemyForceAtBest}`
-            );
           }
           return {
             fromX: bestDefenseUnit.x,
@@ -3826,7 +3640,6 @@ class GameStrategy {
         }
       } else {
         if (this.debugDefense) {
-          console.log(`[Debug-Defense] 未找到有效的备用防御单位，放弃拦截策略`);
         }
         return null; // 放弃拦截，让其他策略处理
       }
@@ -3834,9 +3647,6 @@ class GameStrategy {
 
     // 如果没有找到任何拦截点，也没有可移动的单位，输出警告但仍尝试找到任何可能的防御移动
     if (this.debugDefense) {
-      console.log(
-        `[Debug-Defense] 警告：未找到拦截点或可移动单位，尝试最后的防御措施`
-      );
     }
 
     // 最后的防御措施：找到任意一个我方最大兵力的格子朝皇冠移动，避免反复跳动
@@ -3869,9 +3679,6 @@ class GameStrategy {
           y: this.lastDefenseMove.fromY,
         };
         if (this.debugDefense) {
-          console.log(
-            `[Debug-Defense] 防反跳：避免返回到上次起点(${avoidPosition.x},${avoidPosition.y})`
-          );
         }
       }
 
@@ -3897,9 +3704,6 @@ class GameStrategy {
         };
 
         if (this.debugDefense) {
-          console.log(
-            `[Debug-Defense] 最后防御措施: (${lastResortCell.x},${lastResortCell.y})->(${toX},${toY}) 朝皇冠方向 兵力:${lastResortCell.amount}`
-          );
         }
         return {
           fromX: lastResortCell.x,
@@ -3930,9 +3734,6 @@ class GameStrategy {
           };
 
           if (this.debugDefense) {
-            console.log(
-              `[Debug-Defense] 警告：被迫回跳防御 (${lastResortCell.x},${lastResortCell.y})->(${toX},${toY}) 兵力:${lastResortCell.amount}`
-            );
           }
           return {
             fromX: lastResortCell.x,
@@ -3946,7 +3747,6 @@ class GameStrategy {
     }
 
     if (this.debugDefense) {
-      console.log(`[Debug-Defense] 错误：无法找到任何防御移动`);
     }
     return null;
   }
@@ -4088,16 +3888,11 @@ class GameStrategy {
       });
 
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 路径点${i}: (${point.x},${point.y}) 敌人${stepsToPoint}步到达 可集兵:${gatherResult.totalForce}`
-        );
         if (gatherResult.sources.length > 0) {
           const sourceDetails = gatherResult.sources
             .map((s) => `(${s.x},${s.y}):${s.force}兵${s.steps}步`)
             .join(", ");
-          console.log(`[Debug-Defense]   可用兵源: ${sourceDetails}`);
         } else {
-          console.log(`[Debug-Defense]   无可用兵源`);
         }
 
         // 显示被排除的兵源
@@ -4108,9 +3903,6 @@ class GameStrategy {
           const excludedDetails = gatherResult.excludedSources
             .map((s) => `(${s.x},${s.y}):${s.force}兵${s.steps}步`)
             .join(", ");
-          console.log(
-            `[Debug-Defense]   已排除兵源(在攻击路径): ${excludedDetails}`
-          );
         }
       }
     }
@@ -4247,11 +4039,6 @@ class GameStrategy {
         currentCell.amount <= 1
       ) {
         if (this.debugDefense) {
-          console.log(
-            `[Debug-Defense] 跳过兵源(${source.x},${source.y}) 当前兵力${
-              currentCell ? currentCell.amount : 0
-            }不足`
-          );
         }
         continue;
       }
@@ -4281,23 +4068,16 @@ class GameStrategy {
 
         if (isSignificantMove) {
           if (this.debugDefense) {
-            console.log(
-              `[Debug-Defense] 选中最优拦截兵源: (${source.x},${source.y}) 兵力:${availableForce} 距拦截点:${source.steps}步`
-            );
           }
           return source;
         } else {
           if (this.debugDefense) {
-            console.log(
-              `[Debug-Defense] 跳过微量移动兵源(${source.x},${source.y}) 兵力${availableForce}太少，不足以产生有意义的影响`
-            );
           }
         }
       }
     }
 
     if (this.debugDefense) {
-      console.log(`[Debug-Defense] 拦截点兵源中无有效移动单位`);
     }
     return null;
   }
@@ -4346,17 +4126,6 @@ class GameStrategy {
     if (pathDefenseForce >= enemyRemainingForce) {
       this.lastDefenseMove = null; // 清空防御移动记录，避免过期记录影响判断
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 威胁评估: 敌人当前${enemyAmount}兵 距离${threatDistance}步 到达时剩余${enemyRemainingForce}兵`
-        );
-        console.log(
-          `[Debug-Defense] 攻击路径上我方现有兵力${pathDefenseForce}兵: ${pathDefenseDetails.join(
-            ", "
-          )}`
-        );
-        console.log(
-          `[Debug-Defense] 路径兵力足够 ${pathDefenseForce} ≥ ${enemyRemainingForce} ❌不构成威胁，继续微操`
-        );
       }
       return false;
     }
@@ -4366,17 +4135,6 @@ class GameStrategy {
     // 对于距离很近的敌人（≤5步），如果路径兵力不足，直接判定为威胁
     if (threatDistance <= 5) {
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 威胁评估: 敌人当前${enemyAmount}兵 距离${threatDistance}步 到达时剩余${enemyRemainingForce}兵`
-        );
-        console.log(
-          `[Debug-Defense] 攻击路径上我方现有兵力${pathDefenseForce}兵: ${pathDefenseDetails.join(
-            ", "
-          )} (不足以阻挡)`
-        );
-        console.log(
-          `[Debug-Defense] 敌人距离≤5步且路径兵力不足 ${pathDefenseForce} < ${enemyRemainingForce} ✅构成紧急威胁`
-        );
       }
       return true;
     }
@@ -4386,17 +4144,6 @@ class GameStrategy {
     if (enemyRemainingForce < minBasicThreat) {
       this.lastDefenseMove = null; // 清空防御移动记录
       if (this.debugDefense) {
-        console.log(
-          `[Debug-Defense] 威胁评估: 敌人当前${enemyAmount}兵 距离${threatDistance}步 到达时剩余${enemyRemainingForce}兵`
-        );
-        console.log(
-          `[Debug-Defense] 攻击路径上我方现有兵力${pathDefenseForce}兵: ${pathDefenseDetails.join(
-            ", "
-          )} (不足以阻挡)`
-        );
-        console.log(
-          `[Debug-Defense] 敌人剩余兵力${enemyRemainingForce} < ${minBasicThreat} ❌兵力太少不构成威胁`
-        );
       }
       return false;
     }
@@ -4432,19 +4179,6 @@ class GameStrategy {
     const isThreat = enemyRemainingForce >= dynamicThreatForce;
 
     if (this.debugDefense) {
-      console.log(
-        `[Debug-Defense] 威胁评估: 敌人当前${enemyAmount}兵 距离${threatDistance}步 到达时剩余${enemyRemainingForce}兵`
-      );
-      console.log(
-        `[Debug-Defense] 攻击路径上我方现有兵力${pathDefenseForce}兵: ${pathDefenseDetails.join(
-          ", "
-        )} (不足以阻挡)`
-      );
-      console.log(
-        `[Debug-Defense] 我方皇冠区域防御${crownAreaDefense}兵 动态威胁阈值${dynamicThreatForce}兵 ${
-          isThreat ? "✅构成威胁" : "❌不构成威胁"
-        }`
-      );
     }
 
     // 如果不构成威胁，清空防御移动记录
