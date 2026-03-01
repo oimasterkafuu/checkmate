@@ -70,6 +70,133 @@ const resolveRuntimeMapSizeRatio = (ratio: number, mapSizeVersion: 1 | 2): numbe
   return ratio;
 };
 
+const MAZE_NEAREST_CITY_RETRY_LIMIT = 400;
+
+const isValidGeneralPos = (pos: GeneralPos | undefined): pos is GeneralPos =>
+  Boolean(pos) && !(pos[0] === -1 && pos[1] === -1);
+
+const buildShortestPathDistance = (n: number, m: number, gridType: Grid<Tile>, start: GeneralPos): Int32Array => {
+  const total = n * m;
+  const dist = new Int32Array(total);
+  dist.fill(-1);
+
+  const queue = new Int32Array(total);
+  let head = 0;
+  let tail = 0;
+
+  const startIndex = start[0] * m + start[1];
+  dist[startIndex] = 0;
+  queue[tail] = startIndex;
+  tail += 1;
+
+  while (head < tail) {
+    const index = queue[head];
+    head += 1;
+    const x = Math.floor(index / m);
+    const y = index % m;
+    const current = dist[index];
+
+    for (let d = 0; d < 4; d += 1) {
+      const nx = x + (d === 0 ? -1 : d === 1 ? 1 : 0);
+      const ny = y + (d === 2 ? -1 : d === 3 ? 1 : 0);
+      if (nx < 0 || ny < 0 || nx >= n || ny >= m || gridType[nx][ny] === 1) {
+        continue;
+      }
+      const nextIndex = nx * m + ny;
+      if (dist[nextIndex] !== -1) {
+        continue;
+      }
+      dist[nextIndex] = current + 1;
+      queue[tail] = nextIndex;
+      tail += 1;
+    }
+  }
+
+  return dist;
+};
+
+const resolveMazeNearestCities = (input: {
+  n: number;
+  m: number;
+  gridType: Grid<Tile>;
+  owner: Grid<number>;
+  armyCnt: Grid<number>;
+  generals: GeneralPos[];
+}): GeneralPos[] | null => {
+  const { n, m } = input;
+  const simGrid = input.gridType.map((row) => [...row]);
+  const simOwner = input.owner.map((row) => [...row]);
+  const simArmy = input.armyCnt.map((row) => [...row]);
+
+  for (let i = 0; i < input.generals.length; i += 1) {
+    const pos = input.generals[i];
+    if (!isValidGeneralPos(pos)) {
+      return null;
+    }
+    clearAdjacentCityTiles(pos[0], pos[1], n, m, simGrid, simOwner, simArmy);
+  }
+
+  const cities: GeneralPos[] = [];
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      if (simGrid[i][j] === -1) {
+        cities.push([i, j]);
+      }
+    }
+  }
+  if (cities.length < input.generals.length) {
+    return null;
+  }
+
+  const usedCity = new Set<number>();
+  const targets: GeneralPos[] = [];
+
+  for (let i = 0; i < input.generals.length; i += 1) {
+    const pos = input.generals[i];
+    const dist = buildShortestPathDistance(n, m, simGrid, pos);
+    let bestCityIndex = -1;
+    let bestDist = Number.POSITIVE_INFINITY;
+
+    for (let c = 0; c < cities.length; c += 1) {
+      const [cx, cy] = cities[c];
+      const d = dist[cx * m + cy];
+      if (d < 0 || d > bestDist) {
+        continue;
+      }
+      if (d < bestDist) {
+        bestDist = d;
+        bestCityIndex = c;
+        continue;
+      }
+      if (bestCityIndex === -1) {
+        bestDist = d;
+        bestCityIndex = c;
+        continue;
+      }
+
+      const [bx, by] = cities[bestCityIndex];
+      if (cx < bx || (cx === bx && cy < by)) {
+        bestDist = d;
+        bestCityIndex = c;
+      }
+    }
+
+    if (bestCityIndex === -1) {
+      return null;
+    }
+
+    const [targetX, targetY] = cities[bestCityIndex];
+    const cityKey = targetX * m + targetY;
+    if (usedCity.has(cityKey)) {
+      return null;
+    }
+    usedCity.add(cityKey);
+    targets.push([targetX, targetY]);
+  }
+
+  return targets;
+};
+
 export class GameEngine {
   private readonly update: (sid: string, data: UpdatePayload) => void;
 
@@ -462,30 +589,71 @@ export class GameEngine {
     this.st = generated.st;
   }
 
+  private regenerateMazeMap(): void {
+    const generated = generateMazeMap(this.rng, {
+      widthRatio: this.widthRatio,
+      heightRatio: this.heightRatio,
+      cityRatio: this.cityRatio,
+      mountainRatio: this.mountainRatio,
+      swampRatio: this.swampRatio,
+    });
+
+    this.n = generated.n;
+    this.m = generated.m;
+    this.owner = generated.owner;
+    this.armyCnt = generated.armyCnt;
+    this.gridType = generated.gridType;
+    this.st = generated.st;
+  }
+
   private selectGenerals(): void {
     const requiredPlayers = this.team.filter((team) => team !== 0).length;
-    const selected =
-      this.mapMode === 'maze'
-        ? selectMazeGenerals(
-            {
-              n: this.n,
-              m: this.m,
-              st: this.st,
-              gridType: this.gridType,
-              rng: this.rng,
-            },
-            requiredPlayers,
-          )
-        : selectRandomGenerals(
-            {
-              n: this.n,
-              m: this.m,
-              st: this.st,
-              gridType: this.gridType,
-              rng: this.rng,
-            },
-            requiredPlayers,
-          );
+    let selected: GeneralPos[];
+    let mazeNearestCities: GeneralPos[] | null = null;
+    if (this.mapMode === 'maze') {
+      selected = [];
+      for (let attempt = 0; attempt < MAZE_NEAREST_CITY_RETRY_LIMIT; attempt += 1) {
+        if (attempt > 0) {
+          this.regenerateMazeMap();
+        }
+        selected = selectMazeGenerals(
+          {
+            n: this.n,
+            m: this.m,
+            st: this.st,
+            gridType: this.gridType,
+            rng: this.rng,
+          },
+          requiredPlayers,
+        );
+        mazeNearestCities = resolveMazeNearestCities({
+          n: this.n,
+          m: this.m,
+          gridType: this.gridType,
+          owner: this.owner,
+          armyCnt: this.armyCnt,
+          generals: selected,
+        });
+        if (mazeNearestCities) {
+          break;
+        }
+      }
+
+      if (!mazeNearestCities) {
+        throw new Error('Failed to generate maze map with unique nearest cities for all generals.');
+      }
+    } else {
+      selected = selectRandomGenerals(
+        {
+          n: this.n,
+          m: this.m,
+          st: this.st,
+          gridType: this.gridType,
+          rng: this.rng,
+        },
+        requiredPlayers,
+      );
+    }
 
     for (let i = 0; i < this.n; i += 1) {
       for (let j = 0; j < this.m; j += 1) {
@@ -525,6 +693,15 @@ export class GameEngine {
         }
       }
       cursor += 1;
+    }
+
+    if (mazeNearestCities) {
+      for (let i = 0; i < mazeNearestCities.length; i += 1) {
+        const [x, y] = mazeNearestCities[i];
+        if (this.gridType[x][y] === -1) {
+          this.armyCnt[x][y] = 15;
+        }
+      }
     }
   }
 
