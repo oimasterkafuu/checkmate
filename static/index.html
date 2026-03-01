@@ -20,7 +20,8 @@
       <span id="account-name" style="margin-right: 8px; font-family: Quicksand-Bold"></span>
       <button id="logout-btn" class="small">退出登录</button>
     </div>
-    <div style="position: fixed; right: 12px; bottom: 12px; z-index: 20">
+    <div style="position: fixed; right: 12px; bottom: 12px; z-index: 20; display: flex; gap: 8px">
+      <button id="develop-btn" class="small">开发</button>
       <button id="about-btn" class="small">关于</button>
     </div>
     <div id="menu" class="center center-tag">
@@ -70,6 +71,9 @@
       });
       $('#replays').on('click', function () {
         location.href = '/replays';
+      });
+      $('#develop-btn').on('click', function () {
+        location.href = '/develop';
       });
       $('#about-btn').on('click', function () {
         location.href = '/about';

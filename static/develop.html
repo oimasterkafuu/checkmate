@@ -1,0 +1,230 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <link rel="stylesheet" href="/main.css" />
+    <title>Checkmate!! - 开发</title>
+    <style>
+      #app {
+        max-width: 920px;
+        margin: 84px auto 36px;
+        padding: 0 12px;
+        text-align: left;
+      }
+      .dev-title {
+        margin: 0 0 10px 0;
+        font-size: 34px;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .dev-subtitle {
+        margin: 0 0 16px 0;
+        line-height: 1.7;
+        opacity: 0.9;
+      }
+      .dev-panel {
+        margin: 0 0 14px 0;
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.22);
+        box-shadow: 2px 2px teal;
+      }
+      .dev-panel h3 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .dev-panel p {
+        margin: 0;
+        line-height: 1.7;
+      }
+      .dev-panel p + p {
+        margin-top: 8px;
+      }
+      .dev-panel ol,
+      .dev-panel ul {
+        margin: 8px 0 0 20px;
+        line-height: 1.7;
+      }
+      .dev-link {
+        color: teal;
+        word-break: break-all;
+      }
+      .dev-strong-checklist {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(0, 128, 128, 0.5);
+        background: rgba(0, 128, 128, 0.15);
+      }
+      .protocol-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .protocol-table th,
+      .protocol-table td {
+        border-top: 1px solid rgba(255, 255, 255, 0.16);
+        text-align: left;
+        vertical-align: top;
+        padding: 10px 8px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .protocol-table tr:first-child th,
+      .protocol-table tr:first-child td {
+        border-top: none;
+      }
+      .protocol-table th {
+        width: 140px;
+        color: #d3f3f1;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .code-snippet {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.25);
+        overflow-x: auto;
+        font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+        line-height: 1.5;
+        font-size: 13px;
+        white-space: pre;
+      }
+    </style>
+  </head>
+
+  <body style="overflow: auto; height: auto">
+    <div style="position: fixed; top: 12px; left: 12px; z-index: 20">
+      <button id="back-home-btn" class="small">返回首页</button>
+    </div>
+    <div style="position: fixed; top: 12px; right: 12px; z-index: 20">
+      <span id="account-name" style="margin-right: 8px; font-family: Quicksand-Bold"></span>
+    </div>
+
+    <div id="app">
+      <h1 class="dev-title">开发 Checkmate!!</h1>
+      <p class="dev-subtitle">
+        你在游玩时如果有新想法，也可以直接参与开发。无论是网站功能还是机器人脚本，都欢迎你把改动做成可审阅、可合并的
+        PR。
+      </p>
+
+      <section class="dev-panel">
+        <h3>网站功能开发流程</h3>
+        <p>
+          源码仓库：
+          <a
+            class="dev-link"
+            href="https://github.com/oimasterkafuu/checkmate"
+            target="_blank"
+            rel="noopener noreferrer"
+            >https://github.com/oimasterkafuu/checkmate</a
+          >
+        </p>
+        <ol>
+          <li>在 GitHub 上 fork 仓库到你自己的账号。</li>
+          <li>clone 你的 fork，并创建一个只聚焦单一主题的开发分支。</li>
+          <li>完成功能开发，尽量保持模块边界清晰、命名统一、提交粒度合理。</li>
+          <li>推送分支并在 GitHub 发起 PR，描述改动动机、实现方式与影响范围。</li>
+        </ol>
+        <div class="dev-strong-checklist">
+          <b>为加快合并，请在提交前务必确认：</b>
+          <ul>
+            <li>代码结构清晰，避免把不相关改动混在同一个提交里。</li>
+            <li>ESLint 检查通过（例如：<code>pnpm run lint</code>）。</li>
+            <li>代码已经完成格式化（例如：<code>pnpm run format</code>）。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="dev-panel">
+        <h3>机器人开发协议（当前实现）</h3>
+        <p>机器人与服务端通过 Socket.IO 通信，连接地址是站点同源的 <code>/socket.io/</code>。</p>
+        <table class="protocol-table">
+          <tr>
+            <th>鉴权</th>
+            <td>
+              握手支持 <code>auth.token</code> 或 Cookie 里的 <code>auth_token</code>，本质都是同一个 JWT
+              会话令牌。
+            </td>
+          </tr>
+          <tr>
+            <th>入房</th>
+            <td><code>emit('join_game_room', { room })</code> 进入指定房间。</td>
+          </tr>
+          <tr>
+            <th>开局数据</th>
+            <td>
+              <code>on('init_map')</code> 获取地图尺寸与玩家 ID（<code>n</code>, <code>m</code>,
+              <code>player_ids</code>）。
+            </td>
+          </tr>
+          <tr>
+            <th>逐回合更新</th>
+            <td>
+              <code>on('update')</code> 接收地图与战局数据（<code>turn</code>, <code>is_diff</code>,
+              <code>grid_type</code>, <code>army_cnt</code>, <code>leaderboard</code>,
+              <code>game_end</code> 等）。
+            </td>
+          </tr>
+          <tr>
+            <th>操作上报</th>
+            <td>
+              主要通过 <code>emit('attack', { x, y, dx, dy, half })</code> 发送行动，也可用
+              <code>clear_queue</code>/<code>pop_queue</code> 调整队列。
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="dev-panel">
+        <h3>为什么需要手工提取 token</h3>
+        <p>
+          登录和注册接口都要求验证码（captcha）。因此机器人通常不能直接完成自动登录，需要你先在网页端人工登录，再从
+          Cookie 提取 <code>auth_token</code> 给机器人使用。
+        </p>
+        <ol>
+          <li>浏览器正常登录账号。</li>
+          <li>打开开发者工具，进入 Application/Storage -> Cookies，找到 <code>auth_token</code>。</li>
+          <li>复制 token，作为机器人进程的环境变量（例如 <code>BOT_TOKEN</code>）。</li>
+        </ol>
+      </section>
+
+      <section class="dev-panel">
+        <h3>机器人模板：自动 patch 地图 + 随机动作</h3>
+        <p>
+          仓库已提供模板目录：
+          <code>bot-template/random-patch-bot</code>
+        </p>
+        <p>
+          这个模板会在每个回合消费 <code>update</code>，自动应用全量/增量 patch
+          到本地地图状态，然后从“当前可执行动作集合”中随机选一个动作发送。
+        </p>
+        <pre class="code-snippet"><code># 运行示例
+cd bot-template/random-patch-bot
+pnpm install
+BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token pnpm start</code></pre>
+        <p style="margin-top: 10px">你可以在模板基础上继续增加策略模块、路径规划、风险评估与回放分析。</p>
+      </section>
+    </div>
+
+    <script>
+      async function loadUser() {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          location.href = '/login';
+          return;
+        }
+        const data = await res.json();
+        document.getElementById('account-name').textContent = data.username;
+      }
+
+      document.getElementById('back-home-btn').addEventListener('click', function () {
+        location.href = '/';
+      });
+
+      loadUser();
+    </script>
+  </body>
+</html>

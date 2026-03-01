@@ -465,6 +465,8 @@ const boot = async (): Promise<void> => {
 
   app.get('/replays', async (_request, reply) => reply.sendFile('replays.html'));
 
+  app.get('/develop', async (_request, reply) => reply.sendFile('develop.html'));
+
   app.get('/about', async (_request, reply) => reply.sendFile('about.html'));
 
   app.get('/games', async (_request, reply) => {
