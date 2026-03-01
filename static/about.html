@@ -398,10 +398,11 @@
         const res = await fetch('/api/auth/me');
         if (!res.ok) {
           location.href = '/login';
-          return;
+          return false;
         }
         const data = await res.json();
         document.getElementById('account-name').textContent = data.username;
+        return true;
       }
 
       document.getElementById('back-home-btn').addEventListener('click', function () {
@@ -417,7 +418,8 @@
       });
 
       async function main() {
-        await loadUser();
+        const authed = await loadUser();
+        if (!authed) return;
         try {
           await loadMapExamples();
         } catch {
