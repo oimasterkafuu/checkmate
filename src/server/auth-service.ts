@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { Server as SocketIOServer } from 'socket.io';
@@ -21,7 +22,7 @@ class AuthService {
 
   private readonly jwtTtlSeconds = 7 * 24 * 3600;
 
-  private readonly jwtSecret = process.env.JWT_SECRET ?? 'dev-jwt-secret-change-me';
+  private readonly jwtSecret = process.env.JWT_SECRET ?? randomBytes(32).toString('hex');
 
   private readonly userSocketIds = new Map<string, Set<string>>();
 
