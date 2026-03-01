@@ -1098,9 +1098,7 @@ export class GameEngine {
     if (typeof id === 'undefined') {
       return;
     }
-    if (this.pstat[id] !== LEFT_GAME) {
-      this.kill(0, id + 1);
-    }
+    this.applySurrenderByIndex(id, '投降');
     this.pmove[id] = [];
     this.watching[id] = false;
     this.sendSystemMessage(`${this.names[id]} 离开了游戏。`);
