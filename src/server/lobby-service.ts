@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { GameEngine } from '../game-engine';
+import { resolveMapSizeRatioByPlayers } from '../map/map-size';
 import { ReplayStore } from '../replay-store';
 import {
   ChatScope,
@@ -475,22 +476,7 @@ class LobbyService {
   }
 
   private getMapSizeRatioByPlayers(players: LobbyPlayer[]): number {
-    const playingCount = Math.max(2, Math.min(MAX_TEAMS, this.getPlayingCount(players)));
-    if (playingCount <= 2) {
-      return 0.28;
-    }
-    if (playingCount === 3) {
-      return 0.3;
-    }
-    if (playingCount === 4) {
-      return 0.32;
-    }
-    if (playingCount <= 10) {
-      const progress = (playingCount - 4) / (10 - 4);
-      return 0.32 + progress * (0.76 - 0.32);
-    }
-    const progress = (playingCount - 10) / (MAX_TEAMS - 10);
-    return 0.76 + progress * (0.96 - 0.76);
+    return resolveMapSizeRatioByPlayers(this.getPlayingCount(players));
   }
 
   private getMapSizeConfigByPlayers(

@@ -270,6 +270,8 @@ export class GameEngine {
   }
 
   static async buildReplayBaseMap(meta: ReplayMeta): Promise<{
+    n: number;
+    m: number;
     grid_type: number[];
     army_cnt: number[];
   }> {
@@ -299,7 +301,12 @@ export class GameEngine {
 
     await engine.initializeMap();
     engine.selectGenerals();
-    return engine.buildInitialReplayMapArrays();
+    const snapshot = engine.buildInitialReplayMapArrays();
+    return {
+      n: engine.n,
+      m: engine.m,
+      ...snapshot,
+    };
   }
 
   static async buildReplayFromActions(replay: ReplayActionData): Promise<ReplayData> {
