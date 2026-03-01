@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
-import Fastify from 'fastify';
+import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { UserStore } from './auth-store';
 import { GameEngine } from './game-engine';
@@ -139,7 +139,7 @@ const boot = async (): Promise<void> => {
       done(null, payload);
     });
 
-    webhookApp.post('/postreceive', { preHandler: webhookRateLimitPreHandler }, async (request, reply) => {
+    const postReceiveHandler = async (request: FastifyRequest, reply: FastifyReply) => {
       const body = request.body;
       const rawBody = Buffer.isBuffer(body)
         ? body
@@ -175,7 +175,10 @@ const boot = async (): Promise<void> => {
 
       const queued = webhookUpdater.requestUpdate();
       return reply.code(202).send({ ok: true, queued });
-    });
+    };
+
+    webhookApp.post('/postreceive', { preHandler: webhookRateLimitPreHandler }, postReceiveHandler);
+    webhookApp.post('/postreceive/', { preHandler: webhookRateLimitPreHandler }, postReceiveHandler);
   });
 
   const authPageRateLimitPreHandler = app.rateLimit(AUTH_PAGE_RATE_LIMIT);

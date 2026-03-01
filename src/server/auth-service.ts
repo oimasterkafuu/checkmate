@@ -31,24 +31,27 @@ class AuthService {
   constructor(private readonly userStore: UserStore) {}
 
   isPublicPath(pathname: string): boolean {
-    if (pathname === '/login' || pathname === '/login.html') {
+    const normalizedPathname =
+      pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+
+    if (normalizedPathname === '/login' || normalizedPathname === '/login.html') {
       return true;
     }
-    if (pathname === '/postreceive') {
+    if (normalizedPathname === '/postreceive') {
       return true;
     }
     if (
-      pathname === '/api/auth/login' ||
-      pathname === '/api/auth/register' ||
-      pathname === '/api/auth/logout' ||
-      pathname === '/api/auth/captcha'
+      normalizedPathname === '/api/auth/login' ||
+      normalizedPathname === '/api/auth/register' ||
+      normalizedPathname === '/api/auth/logout' ||
+      normalizedPathname === '/api/auth/captcha'
     ) {
       return true;
     }
-    if (pathname.startsWith('/socket.io/')) {
+    if (normalizedPathname.startsWith('/socket.io/')) {
       return true;
     }
-    if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|otf|ttf|mp3)$/i.test(pathname)) {
+    if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|otf|ttf|mp3)$/i.test(normalizedPathname)) {
       return true;
     }
     return false;
