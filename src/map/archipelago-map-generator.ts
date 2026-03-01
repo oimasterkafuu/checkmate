@@ -27,6 +27,7 @@ const RECT_SIZES = [
 
 const MAP_RETRY_LIMIT = 220;
 const COASTLINE_EXPAND_PROBABILITY = 0.12;
+const COASTLINE_MAX_CONNECTED_LEN_EXCLUSIVE = 3;
 
 const isInBounds = (n: number, m: number, x: number, y: number): boolean =>
   x >= 0 && y >= 0 && x < n && y < m;
@@ -233,6 +234,55 @@ const pickBestPlayerIslands = (
   return bestSelection;
 };
 
+const canAddCoastlineCell = (
+  n: number,
+  m: number,
+  x: number,
+  y: number,
+  addedCoastCells: Set<number>,
+): boolean => {
+  for (let dx = -1; dx <= 1; dx += 2) {
+    for (let dy = -1; dy <= 1; dy += 2) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!isInBounds(n, m, nx, ny)) {
+        continue;
+      }
+      if (addedCoastCells.has(nx * m + ny)) {
+        return false;
+      }
+    }
+  }
+
+  const start = x * m + y;
+  const stack = [start];
+  const visited = new Set<number>([start]);
+
+  while (stack.length > 0) {
+    const idx = stack.pop();
+    if (typeof idx === 'undefined') {
+      continue;
+    }
+    const cx = Math.floor(idx / m);
+    const cy = idx % m;
+    for (let d = 0; d < 4; d += 1) {
+      const nx = cx + MOVE_DX[d];
+      const ny = cy + MOVE_DY[d];
+      if (!isInBounds(n, m, nx, ny)) {
+        continue;
+      }
+      const next = nx * m + ny;
+      if (!addedCoastCells.has(next) || visited.has(next)) {
+        continue;
+      }
+      visited.add(next);
+      stack.push(next);
+    }
+  }
+
+  return visited.size < COASTLINE_MAX_CONNECTED_LEN_EXCLUSIVE;
+};
+
 const applyCoastlineNoise = (
   rng: SeededRandom,
   n: number,
@@ -241,6 +291,7 @@ const applyCoastlineNoise = (
   islandIdGrid: number[][],
   islandsById: Map<number, IslandInfo>,
 ): void => {
+  const addedCoastCells = new Set<number>();
   const candidates: Array<[number, number]> = [];
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
@@ -278,11 +329,15 @@ const applyCoastlineNoise = (
     if (adjacentIslands.size !== 1) {
       continue;
     }
+    if (!canAddCoastlineCell(n, m, x, y, addedCoastCells)) {
+      continue;
+    }
 
     const islandId = adjacentIslands.values().next().value as number;
     gridType[x][y] = 0;
     islandIdGrid[x][y] = islandId;
     islandsById.get(islandId)?.allCells.add(x * m + y);
+    addedCoastCells.add(x * m + y);
   }
 };
 
