@@ -11,7 +11,7 @@ export interface LobbyConfig {
   speed: number;
   allow_team: boolean;
   map_token: string;
-  map_mode: 'random' | 'maze';
+  map_mode: 'random' | 'maze' | 'archipelago';
 }
 
 export interface LobbyPlayer {
@@ -32,7 +32,7 @@ export interface RoomUpdatePayload {
   speed: number;
   allow_team: boolean;
   map_token: string;
-  map_mode: 'random' | 'maze';
+  map_mode: 'random' | 'maze' | 'archipelago';
   in_game: boolean;
   players: RoomPlayerView[];
   ready: number;
@@ -109,7 +109,7 @@ export interface ReplayMeta {
   speed: number;
   allow_team: boolean;
   map_token: string;
-  map_mode: 'random' | 'maze';
+  map_mode: 'random' | 'maze' | 'archipelago';
   player_names: string[];
   player_teams: number[];
   map_size_version?: 1 | 2;

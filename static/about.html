@@ -73,6 +73,85 @@
         font-size: 13px;
         opacity: 0.78;
       }
+      .rule-intro-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .rule-block h4 {
+        margin: 0 0 8px 0;
+        font-size: 15px;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .rule-list {
+        margin: 0;
+        padding-left: 18px;
+        line-height: 1.7;
+      }
+      .rule-list li {
+        margin: 0 0 4px 0;
+      }
+      .terrain-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .terrain-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0 0 8px 0;
+      }
+      .terrain-icon-cell {
+        width: 28px;
+        height: 28px;
+        flex: none;
+        margin-top: 1px;
+        border: 1px solid black;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 20px 20px;
+        box-sizing: border-box;
+      }
+      .terrain-icon-cell.general {
+        background-color: red;
+        background-image: url('/crown.png');
+      }
+      .terrain-icon-cell.city {
+        background-color: gray;
+        background-image: url('/city.png');
+      }
+      .terrain-icon-cell.mountain {
+        background-color: #dcdcdc;
+        background-image: url('/mountain.png');
+      }
+      .terrain-icon-cell.swamp {
+        background-color: gray;
+        background-image: url('/swamp.png');
+      }
+      .terrain-text {
+        margin: 0;
+        line-height: 1.6;
+      }
+      .kbd {
+        display: inline-block;
+        min-width: 18px;
+        padding: 0 6px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 12px;
+        line-height: 20px;
+        text-align: center;
+        color: #f0ffff;
+        white-space: nowrap;
+      }
+      @media (max-width: 760px) {
+        .rule-intro-grid {
+          grid-template-columns: 1fr;
+        }
+      }
       .map-example-toolbar {
         display: flex;
         align-items: center;
@@ -86,7 +165,7 @@
       .map-example-grid {
         margin-top: 12px;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
       }
       .map-example-card {
@@ -169,13 +248,70 @@
       </section>
 
       <section class="about-panel">
-        <h3>地图示例（4 人）</h3>
-        <p>下方示例由服务器实时生成，展示“标准地图”和“峡谷回廊”的地形差异。</p>
-        <div class="map-example-toolbar">
-          <button id="refresh-map-examples-btn" class="small">刷新示例</button>
-          <span id="map-example-status" class="map-example-status"></span>
+        <h3>基础规则与地形</h3>
+        <div class="rule-intro-grid">
+          <div class="rule-block">
+            <h4>基本规则</h4>
+            <ul class="rule-list">
+              <li>每位玩家有 1 座皇冠，皇冠被攻陷即被淘汰并被接管。</li>
+              <li>城市与皇冠每 2 回合增兵，所有领地每 50 回合增兵。</li>
+              <li>山脉不可通行；沼泽会持续损兵，兵力为 0 时会失去控制。</li>
+              <li>地图模式会影响地形结构与前期扩张路线。</li>
+            </ul>
+          </div>
+          <div class="rule-block">
+            <h4>地形说明</h4>
+            <ul class="terrain-list">
+              <li class="terrain-item">
+                <span class="terrain-icon-cell general" aria-hidden="true"></span>
+                <p class="terrain-text"><b>皇冠</b>：玩家核心据点，失守即出局。</p>
+              </li>
+              <li class="terrain-item">
+                <span class="terrain-icon-cell city" aria-hidden="true"></span>
+                <p class="terrain-text"><b>城市</b>：提供持续兵力增长，可被争夺。</p>
+              </li>
+              <li class="terrain-item">
+                <span class="terrain-icon-cell mountain" aria-hidden="true"></span>
+                <p class="terrain-text"><b>山脉</b>：阻挡移动的不可通行地形。</p>
+              </li>
+              <li class="terrain-item">
+                <span class="terrain-icon-cell swamp" aria-hidden="true"></span>
+                <p class="terrain-text"><b>沼泽</b>：占领后会持续消耗兵力。</p>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div id="map-example-grid" class="map-example-grid"></div>
+      </section>
+
+      <section class="about-panel">
+        <h3>回合与操作说明</h3>
+        <div class="rule-intro-grid">
+          <div class="rule-block">
+            <h4>回合显示与增兵</h4>
+            <ul class="rule-list">
+              <li>
+                顶部回合采用“半回合显示”：<br />
+                <span class="kbd">回合 1</span> → <span class="kbd">回合 1.</span> → <span class="kbd">回合 2</span> → <span class="kbd">回合 2.</span>
+              </li>
+              <li>无点与有点属于同一整回合的两个阶段，不是两个完整回合。</li>
+              <li>所有已占领领地每 25 回合（50 个“半回合”）增加 1 兵力。</li>
+              <li>城市与皇冠每回合（2 个“半回合”）额外增加 1 兵力。</li>
+            </ul>
+          </div>
+          <div class="rule-block">
+            <h4>鼠标与键盘</h4>
+            <ul class="rule-list">
+              <li>鼠标左键拖动：平移地图；滚轮：缩放地图。</li>
+              <li>点击己方格：选中；点击空白背景：取消当前选中。</li>
+              <li><span class="kbd">W/A/S/D</span> 或 <span class="kbd">↑/←/↓/→</span>：从选中格移动/进攻。</li>
+              <li><span class="kbd">Z</span>：切换全兵 / 半兵（50%）。</li>
+              <li><span class="kbd">Q</span>：清空操作队列；<span class="kbd">E</span>：撤销最后一步。</li>
+              <li><span class="kbd">Enter</span>：公屏聊天；<span class="kbd">T</span>：队伍聊天。</li>
+              <li><span class="kbd">Esc</span>：打开/关闭投降确认。</li>
+              <li><span class="kbd">Space</span>：清除当前选中。</li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       <section class="about-panel">
@@ -248,6 +384,16 @@
         </p>
         <p class="about-note">具体条款请以项目中的 LICENSE 文件与原始仓库声明为准。</p>
       </section>
+
+      <section class="about-panel">
+        <h3>地图示例（4 人）</h3>
+        <p>下方示例由服务器实时生成，展示“标准地图”“峡谷回廊”“群岛要塞”的地形差异。</p>
+        <div class="map-example-toolbar">
+          <button id="refresh-map-examples-btn" class="small">刷新示例</button>
+          <span id="map-example-status" class="map-example-status"></span>
+        </div>
+        <div id="map-example-grid" class="map-example-grid"></div>
+      </section>
     </div>
 
     <script>
@@ -255,7 +401,9 @@
       let resizeTimer = 0;
 
       function mapModeLabel(mapMode) {
-        return mapMode === 'maze' ? '峡谷回廊' : '标准地图';
+        if (mapMode === 'maze') return '峡谷回廊';
+        if (mapMode === 'archipelago') return '群岛要塞';
+        return '标准地图';
       }
 
       function resolveScaleClass(cellSize) {

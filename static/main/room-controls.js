@@ -57,11 +57,22 @@ async function copyRoomLink() {
 }
 
 function getMapModeCode() {
-  return getTabVal('map-mode') == '峡谷回廊' ? 'maze' : 'random';
+  var mapMode = getTabVal('map-mode');
+  if (mapMode == '峡谷回廊') return 'maze';
+  if (mapMode == '群岛要塞') return 'archipelago';
+  return 'random';
 }
 
 function setMapModeByCode(code) {
-  setTabVal('map-mode', code == 'maze' ? '峡谷回廊' : '标准地图');
+  if (code == 'maze') {
+    setTabVal('map-mode', '峡谷回廊');
+    return;
+  }
+  if (code == 'archipelago') {
+    setTabVal('map-mode', '群岛要塞');
+    return;
+  }
+  setTabVal('map-mode', '标准地图');
 }
 
 function refreshMapInputHint() {
