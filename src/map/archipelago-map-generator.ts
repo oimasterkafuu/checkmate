@@ -284,8 +284,30 @@ const canAddCoastlineCell = (
   m: number,
   x: number,
   y: number,
+  islandIdGrid: number[][],
   addedCoastCells: Set<number>,
 ): boolean => {
+  const surroundingIslandIds = new Set<number>();
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dy = -1; dy <= 1; dy += 1) {
+      if (dx === 0 && dy === 0) {
+        continue;
+      }
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!isInBounds(n, m, nx, ny)) {
+        continue;
+      }
+      const islandId = islandIdGrid[nx][ny];
+      if (islandId !== -1) {
+        surroundingIslandIds.add(islandId);
+      }
+    }
+  }
+  if (surroundingIslandIds.size > 1) {
+    return false;
+  }
+
   for (let dx = -1; dx <= 1; dx += 2) {
     for (let dy = -1; dy <= 1; dy += 2) {
       const nx = x + dx;
@@ -374,7 +396,7 @@ const applyCoastlineNoise = (
     if (adjacentIslands.size !== 1) {
       continue;
     }
-    if (!canAddCoastlineCell(n, m, x, y, addedCoastCells)) {
+    if (!canAddCoastlineCell(n, m, x, y, islandIdGrid, addedCoastCells)) {
       continue;
     }
 
