@@ -133,11 +133,13 @@ const boot = async (): Promise<void> => {
   });
 
   await app.register(async (webhookApp) => {
+    const webhookRateLimitPreHandler = webhookApp.rateLimit(WEBHOOK_RATE_LIMIT);
+
     webhookApp.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, done) => {
       done(null, payload);
     });
 
-    webhookApp.post('/postreceive', { config: { rateLimit: WEBHOOK_RATE_LIMIT } }, async (request, reply) => {
+    webhookApp.post('/postreceive', { preHandler: webhookRateLimitPreHandler }, async (request, reply) => {
       const body = request.body;
       const rawBody = Buffer.isBuffer(body)
         ? body
@@ -176,7 +178,10 @@ const boot = async (): Promise<void> => {
     });
   });
 
-  app.get('/login', { config: { rateLimit: AUTH_PAGE_RATE_LIMIT } }, async (request, reply) => {
+  const authPageRateLimitPreHandler = app.rateLimit(AUTH_PAGE_RATE_LIMIT);
+  const authActionRateLimitPreHandler = app.rateLimit(AUTH_ACTION_RATE_LIMIT);
+
+  app.get('/login', { preHandler: authPageRateLimitPreHandler }, async (request, reply) => {
     const token = authService.getTokenFromCookie(request.headers.cookie);
     const authUser = authService.verifyAuthToken(token);
     if (authUser) {
@@ -185,46 +190,42 @@ const boot = async (): Promise<void> => {
     return reply.sendFile('login.html');
   });
 
-  app.get('/api/auth/captcha', { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } }, async (_request, reply) => {
+  app.get('/api/auth/captcha', { preHandler: authActionRateLimitPreHandler }, async (_request, reply) => {
     return reply.send(captchaService.createChallenge());
   });
 
-  app.post(
-    '/api/auth/register',
-    { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } },
-    async (request, reply) => {
-      const body = request.body as {
-        username?: string;
-        password?: string;
-        captchaId?: string;
-        captchaCode?: string;
-      };
-      const usernameRaw = String(body?.username ?? '');
-      const password = String(body?.password ?? '');
-      const captchaId = String(body?.captchaId ?? '');
-      const captchaCode = String(body?.captchaCode ?? '');
+  app.post('/api/auth/register', { preHandler: authActionRateLimitPreHandler }, async (request, reply) => {
+    const body = request.body as {
+      username?: string;
+      password?: string;
+      captchaId?: string;
+      captchaCode?: string;
+    };
+    const usernameRaw = String(body?.username ?? '');
+    const password = String(body?.password ?? '');
+    const captchaId = String(body?.captchaId ?? '');
+    const captchaCode = String(body?.captchaCode ?? '');
 
-      const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
-      if (!captchaCheck.ok) {
-        return reply.code(400).send({ error: captchaCheck.error ?? '验证码校验失败。' });
-      }
+    const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
+    if (!captchaCheck.ok) {
+      return reply.code(400).send({ error: captchaCheck.error ?? '验证码校验失败。' });
+    }
 
-      try {
-        const username = await userStore.register(usernameRaw, password);
-        const sessionId = await userStore.rotateSession(username);
-        authService.disconnectUserSockets(username);
-        const token = authService.signAuthToken(username, sessionId);
-        authService.setAuthCookie(reply, token);
-        return reply.send({ username });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '注册失败。';
-        const status = message.includes('存在') ? 409 : 400;
-        return reply.code(status).send({ error: message });
-      }
-    },
-  );
+    try {
+      const username = await userStore.register(usernameRaw, password);
+      const sessionId = await userStore.rotateSession(username);
+      authService.disconnectUserSockets(username);
+      const token = authService.signAuthToken(username, sessionId);
+      authService.setAuthCookie(reply, token);
+      return reply.send({ username });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '注册失败。';
+      const status = message.includes('存在') ? 409 : 400;
+      return reply.code(status).send({ error: message });
+    }
+  });
 
-  app.post('/api/auth/login', { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } }, async (request, reply) => {
+  app.post('/api/auth/login', { preHandler: authActionRateLimitPreHandler }, async (request, reply) => {
     const body = request.body as {
       username?: string;
       password?: string;
@@ -254,9 +255,8 @@ const boot = async (): Promise<void> => {
     return reply.send({ username });
   });
 
-  app.post('/api/auth/logout', { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } }, async (request, reply) => {
-    const token = authService.getTokenFromCookie(request.headers.cookie);
-    const authUser = authService.verifyAuthToken(token);
+  app.post('/api/auth/logout', { preHandler: authActionRateLimitPreHandler }, async (request, reply) => {
+    const authUser = (request as AuthRequest).authUser;
     if (authUser) {
       await userStore.clearSession(authUser.username);
       authService.disconnectUserSockets(authUser.username);
