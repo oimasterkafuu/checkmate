@@ -55,7 +55,7 @@ const buildMapExample = async (
   grid_type: number[];
   army_cnt: number[];
 }> => {
-  const mapToken = randomBytes(8).toString('hex');
+  const mapToken = randomBytes(16).toString('hex');
   const mapSizeRatio = resolveMapSizeRatioByPlayers(MAP_EXAMPLE_PLAYER_COUNT);
   const playerNames = Array.from({ length: MAP_EXAMPLE_PLAYER_COUNT }, (_, index) => `P${index + 1}`);
   const playerTeams = Array.from({ length: MAP_EXAMPLE_PLAYER_COUNT }, (_, index) => index + 1);
