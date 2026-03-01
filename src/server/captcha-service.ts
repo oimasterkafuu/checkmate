@@ -170,17 +170,29 @@ class CaptchaService {
   }
 
   private buildSvgDataUri(code: string): string {
-    const pixelSize = this.glyphPixel + randomInt(0, 2);
+    const codeLength = code.length;
+    const layoutPaddingX = 6;
+    const layoutPaddingY = 4;
+    const minPixelSize = 3;
+    const maxPixelSize = this.glyphPixel + 1;
+    const minGap = 2;
+    const maxGap = 8;
+    const usableWidth = this.width - layoutPaddingX * 2;
+    const maxPixelByWidth = Math.floor((usableWidth - (codeLength - 1) * minGap) / (codeLength * 5));
+    const pixelSize = Math.max(minPixelSize, Math.min(maxPixelSize, maxPixelByWidth));
     const glyphWidth = 5 * pixelSize;
     const glyphHeight = 7 * pixelSize;
-    const gap = randomInt(5, 9);
+    const remainingWidth = Math.max(0, usableWidth - codeLength * glyphWidth);
+    const gap =
+      codeLength > 1
+        ? Math.max(minGap, Math.min(maxGap, Math.floor(remainingWidth / (codeLength - 1))))
+        : 0;
     const totalWidth = code.length * glyphWidth + (code.length - 1) * gap;
-    const minX = 6;
-    const maxX = Math.max(minX, this.width - totalWidth - 6);
-    const minY = 4;
-    const maxY = Math.max(minY, this.height - glyphHeight - 4);
-    const startX = clamp(Math.floor((this.width - totalWidth) / 2) + randomInt(-2, 3), minX, maxX);
-    const startY = clamp(Math.floor((this.height - glyphHeight) / 2) + randomInt(-1, 2), minY, maxY);
+    const extraX = Math.max(0, usableWidth - totalWidth);
+    const maxStartX = Math.max(layoutPaddingX, this.width - totalWidth - layoutPaddingX);
+    const startX = clamp(layoutPaddingX + Math.floor(extraX / 2), layoutPaddingX, maxStartX);
+    const maxStartY = Math.max(layoutPaddingY, this.height - glyphHeight - layoutPaddingY);
+    const startY = clamp(Math.floor((this.height - glyphHeight) / 2), layoutPaddingY, maxStartY);
 
     const backgroundHue = randomInt(160, 221);
     const backgroundLightStart = randomInt(90, 96);
@@ -251,10 +263,13 @@ class CaptchaService {
     const letters = code
       .split('')
       .map((char, index) => {
-        const x = clamp(startX + index * (glyphWidth + gap) + randomInt(-2, 3), 2, this.width - glyphWidth - 2);
-        const y = clamp(startY + randomInt(-2, 3), 2, this.height - glyphHeight - 2);
-        const rotate = randomInt(-11, 12);
-        const skew = randomInt(-7, 8);
+        // Fixed horizontal slots keep characters from overlapping each other.
+        const x = startX + index * (glyphWidth + gap);
+        const y = clamp(startY + randomInt(-1, 2), 2, this.height - glyphHeight - 2);
+        const rotateLimit = codeLength >= 6 ? 8 : codeLength === 5 ? 10 : 12;
+        const skewLimit = codeLength >= 6 ? 5 : codeLength === 5 ? 6 : 8;
+        const rotate = randomInt(-rotateLimit, rotateLimit + 1);
+        const skew = randomInt(-skewLimit, skewLimit + 1);
         const body = this.renderGlyph(char, pixelSize);
         const centerX = (5 * pixelSize) / 2;
         const centerY = (7 * pixelSize) / 2;
