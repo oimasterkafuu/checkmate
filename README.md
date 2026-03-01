@@ -12,6 +12,74 @@ pnpm run start
 
 启动后访问 `http://localhost:23333/` 并注册账号。
 
+## 频率限制与真实 IP
+
+- 服务端限流默认按客户端 IP 计数。
+- 当请求来源是内网或本机代理（如 `127.0.0.1`、`10.x.x.x`、`192.168.x.x`）时，会优先从以下请求头提取真实 IP：
+  - `CF-Connecting-IP`
+  - `True-Client-IP`
+  - `X-Real-IP`
+  - `X-Forwarded-For`
+  - `X-Client-IP`
+  - `Forwarded`
+- 若请求直接到达 Fastify（非可信代理来源），则使用连接源地址，避免伪造头绕过限流。
+
+### frp 透传真实 IP（Cloudflare -> Nginx -> frp -> Fastify）
+
+推荐使用 `frp` 的 `http` 代理类型（不要使用 `tcp` 直透），这样 Fastify 才能拿到 HTTP 头里的真实 IP。
+
+`frps.toml`（服务端示例）：
+
+```toml
+bindPort = 7000
+vhostHTTPPort = 8080
+
+[auth]
+method = "token"
+token = "replace-with-strong-token"
+```
+
+`frpc.toml`（客户端示例）：
+
+```toml
+serverAddr = "your-frps-public-ip-or-domain"
+serverPort = 7000
+
+[auth]
+method = "token"
+token = "replace-with-strong-token"
+
+[[proxies]]
+name = "checkmate-http"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 23333
+customDomains = ["game.example.com"]
+```
+
+Nginx（位于 Cloudflare 后方，转发到 frps 的 `vhostHTTPPort`）：
+
+```nginx
+server {
+    listen 80;
+    server_name game.example.com;
+
+    # 建议启用 real_ip 模块并维护 Cloudflare 官方 IP 段
+    real_ip_header CF-Connecting-IP;
+    real_ip_recursive on;
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $realip_remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+```
+
+这样链路中的头部会被保留，服务端限流会优先使用真实客户端 IP。
+
 ## GitHub Webhook 自动更新
 
 - Webhook 地址：`POST /postreceive`
