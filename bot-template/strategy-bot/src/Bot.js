@@ -21,6 +21,7 @@ class Bot {
     this.lastTurn = -1;
     this.lastMazeRequestAt = 0;
     this.lastLobbyActionAt = 0;
+    this.forceSpectatorForMapMode = false;
 
     this.mapState = new MapState();
     this.strategy = new GameStrategy();
@@ -56,7 +57,7 @@ class Bot {
     });
 
     this.socket.on('room_update', (data) => {
-      this.ensureMazeModeFromRoomUpdate(data);
+      this.enforceMazePolicyFromRoomUpdate(data);
       this.autoReadyFromRoomUpdate(data);
     });
 
@@ -72,33 +73,53 @@ class Bot {
       this.inGame = false;
       this.playerId = 0;
       this.lastTurn = -1;
+      this.forceSpectatorForMapMode = false;
       this.strategy.resetInitialization();
     });
   }
 
-  ensureMazeModeFromRoomUpdate(data) {
+  enforceMazePolicyFromRoomUpdate(data) {
     if (!this.clientId || !Array.isArray(data?.players) || toBoolean(data?.in_game)) {
       return;
     }
 
-    const hostSid = String(data.players[0]?.sid || '');
-    if (hostSid !== this.clientId) {
+    const self = data.players.find((player) => String(player?.sid || '') === this.clientId);
+    if (!self) {
       return;
     }
 
+    const hostSid = String(data.players[0]?.sid || '');
+    const isHost = hostSid === this.clientId;
+
     const mapMode = String(data.map_mode || 'random');
     if (mapMode === 'maze') {
+      if (this.forceSpectatorForMapMode) {
+        this.forceSpectatorForMapMode = false;
+        console.log('[bot] map guard: maze restored, release spectator lock');
+      }
       return;
     }
 
     const now = Date.now();
-    if (now - this.lastMazeRequestAt < 1000) {
+
+    if (isHost) {
+      this.forceSpectatorForMapMode = false;
+      if (now - this.lastMazeRequestAt < 500) {
+        return;
+      }
+      this.lastMazeRequestAt = now;
+      this.socket.emit('change_game_conf', { map_mode: 'maze' });
+      console.log('[bot] map guard: host enforce map_mode=maze');
       return;
     }
 
-    this.lastMazeRequestAt = now;
-    this.socket.emit('change_game_conf', { map_mode: 'maze' });
-    console.log('[bot] host mode: enforce map_mode=maze');
+    this.forceSpectatorForMapMode = true;
+    const team = Number.parseInt(String(self.team ?? '0'), 10) || 0;
+    if (team !== 0 && now - this.lastLobbyActionAt >= 500) {
+      this.socket.emit('change_team', { team: 0 });
+      this.lastLobbyActionAt = now;
+      console.log('[bot] map guard: no permission on non-maze, switch to spectator');
+    }
   }
 
   autoReadyFromRoomUpdate(data) {
@@ -121,6 +142,10 @@ class Bot {
     const targetTeam = allowTeam ? this.team : 1;
     const need = Number.parseInt(String(data?.need ?? '0'), 10) || 0;
     const now = Date.now();
+
+    if (this.forceSpectatorForMapMode) {
+      return;
+    }
 
     if (now - this.lastLobbyActionAt < 1000) {
       return;
