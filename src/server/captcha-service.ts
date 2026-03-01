@@ -213,7 +213,7 @@ class CaptchaService {
       return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`;
     }).join('');
 
-    const noiseDots = Array.from({ length: 22 }, () => {
+    const noiseDots = Array.from({ length: 12 }, () => {
       const cx = randomInt(this.width);
       const cy = randomInt(this.height);
       const r = randomFloat(0.5, 2.1).toFixed(2);
@@ -222,7 +222,7 @@ class CaptchaService {
       return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="${opacity}"/>`;
     }).join('');
 
-    const curveNoise = Array.from({ length: 3 }, () => {
+    const curveNoise = Array.from({ length: 2 }, () => {
       const start = `${randomInt(this.width)} ${randomInt(this.height)}`;
       const control1 = `${randomInt(this.width)} ${randomInt(this.height)}`;
       const control2 = `${randomInt(this.width)} ${randomInt(this.height)}`;
@@ -237,8 +237,8 @@ class CaptchaService {
     const textZoneMaxX = clamp(startX + totalWidth + 10, 0, this.width);
     const textZoneMinY = clamp(startY - 8, 0, this.height);
     const textZoneMaxY = clamp(startY + glyphHeight + 8, 0, this.height);
-    const interferenceDots = Array.from({ length: randomInt(34, 56) }, () => {
-      const nearText = randomFloat(0, 1) < 0.76;
+    const interferenceDots = Array.from({ length: randomInt(16, 28) }, () => {
+      const nearText = randomFloat(0, 1) < 0.64;
       const baseX = nearText ? randomFloat(textZoneMinX, textZoneMaxX) : randomFloat(0, this.width);
       const baseY = nearText ? randomFloat(textZoneMinY, textZoneMaxY) : randomFloat(0, this.height);
       const cellJitter = pixelSize * 0.14;
@@ -251,7 +251,7 @@ class CaptchaService {
       const opacity = randomFloat(0.5, 0.98).toFixed(2);
       const fill = randomInkColor();
       const rect = `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${(pixelSize * 0.36).toFixed(2)}" ry="${(pixelSize * 0.36).toFixed(2)}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`;
-      if (randomFloat(0, 1) < 0.16) {
+      if (randomFloat(0, 1) < 0.08) {
         const dotX = x + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
         const dotY = y + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
         const dotR = randomFloat(0.32, 0.88).toFixed(2);
