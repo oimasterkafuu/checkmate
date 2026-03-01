@@ -110,7 +110,7 @@
         margin-top: 8px;
         border: 1px solid rgba(255, 255, 255, 0.14);
         background: rgba(255, 255, 255, 0.03);
-        overflow: auto;
+        overflow: hidden;
         max-width: 100%;
         padding: 6px;
       }
@@ -132,6 +132,15 @@
         white-space: nowrap;
         color: white;
         user-select: none;
+        box-sizing: border-box;
+        width: var(--cell-size, 12px);
+        height: var(--cell-size, 12px);
+        max-width: var(--cell-size, 12px);
+        max-height: var(--cell-size, 12px);
+        min-width: var(--cell-size, 12px);
+        min-height: var(--cell-size, 12px);
+        background-size: var(--icon-size, 10px) var(--icon-size, 10px);
+        font-size: var(--font-size, 10px);
       }
     </style>
   </head>
@@ -164,7 +173,7 @@
         <p>下方示例由服务器实时生成，展示“标准地图”和“峡谷回廊”的地形差异。</p>
         <div class="map-example-toolbar">
           <button id="refresh-map-examples-btn" class="small">刷新示例</button>
-          <span id="map-example-status" class="map-example-status">加载中…</span>
+          <span id="map-example-status" class="map-example-status"></span>
         </div>
         <div id="map-example-grid" class="map-example-grid"></div>
       </section>
@@ -242,7 +251,6 @@
     </div>
 
     <script>
-      const scaleSizes = [0, 20, 25, 32, 40, 50, 60];
       let lastMapExamplesData = null;
       let resizeTimer = 0;
 
@@ -250,18 +258,17 @@
         return mapMode === 'maze' ? '峡谷回廊' : '标准地图';
       }
 
-      function pickScale(mapCols, wrapWidth) {
-        const available = Math.max(220, wrapWidth - 12);
-        for (let scale = 6; scale >= 1; scale -= 1) {
-          if (mapCols * scaleSizes[scale] <= available) {
-            return scale;
-          }
-        }
-        return 1;
+      function resolveScaleClass(cellSize) {
+        if (cellSize <= 20) return 1;
+        if (cellSize <= 25) return 2;
+        if (cellSize <= 32) return 3;
+        if (cellSize <= 40) return 4;
+        if (cellSize <= 50) return 5;
+        return 6;
       }
 
-      function buildCellHtml(code, army, scale) {
-        let cls = `s${scale}`;
+      function buildCellHtml(code, army, scaleClass) {
+        let cls = `s${scaleClass}`;
         let txt = '';
         if (code < 200) {
           if (code < 50) {
@@ -289,7 +296,7 @@
         } else if (code === 205) {
           cls += ' swamp fog';
         }
-        if (txt.length > 0 && scale === 1) {
+        if (txt.length > 0 && scaleClass === 1) {
           txt = `<div class="txt">${txt}</div>`;
         }
         return `<td class="${cls}">${txt}</td>`;
@@ -297,13 +304,19 @@
 
       function renderExampleBoard(container, example) {
         const wrap = container.parentElement;
-        const scale = pickScale(example.m, wrap.clientWidth);
+        const availableWidth = Math.max(40, wrap.clientWidth - 2);
+        const cellSize = Math.max(4, Math.floor(availableWidth / example.m));
+        const scaleClass = resolveScaleClass(cellSize);
+        container.style.setProperty('--cell-size', `${cellSize}px`);
+        container.style.setProperty('--icon-size', `${Math.max(3, Math.floor(cellSize * 0.8))}px`);
+        container.style.setProperty('--font-size', `${Math.max(6, Math.floor(cellSize * 0.45))}px`);
+
         let html = '<table><tbody>';
         for (let i = 0; i < example.n; i += 1) {
           html += '<tr>';
           for (let j = 0; j < example.m; j += 1) {
             const idx = i * example.m + j;
-            html += buildCellHtml(example.grid_type[idx], example.army_cnt[idx], scale);
+            html += buildCellHtml(example.grid_type[idx], example.army_cnt[idx], scaleClass);
           }
           html += '</tr>';
         }
@@ -315,6 +328,7 @@
         lastMapExamplesData = data;
         const grid = document.getElementById('map-example-grid');
         grid.innerHTML = '';
+        const boardItems = [];
         for (const item of data.examples) {
           const card = document.createElement('article');
           card.className = 'map-example-card';
@@ -336,7 +350,11 @@
           card.appendChild(meta);
           card.appendChild(boardWrap);
           grid.appendChild(card);
-          renderExampleBoard(board, item);
+          boardItems.push({ board, item });
+        }
+
+        for (const boardItem of boardItems) {
+          renderExampleBoard(boardItem.board, boardItem.item);
         }
       }
 
@@ -366,7 +384,7 @@
         }
         const data = await res.json();
         renderMapExamples(data);
-        setMapExampleStatus(`已更新：${new Date().toLocaleTimeString()}`);
+        setMapExampleStatus('');
       }
 
       async function loadUser() {
