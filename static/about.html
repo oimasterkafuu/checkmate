@@ -289,10 +289,13 @@
           <div class="rule-block">
             <h4>回合显示与增兵</h4>
             <ul class="rule-list">
-              <li>顶部回合采用“半回合显示”：<span class="kbd">5</span> → <span class="kbd">5.</span> → <span class="kbd">6</span> → <span class="kbd">6.</span></li>
+              <li>
+                顶部回合采用“半回合显示”：<br />
+                <span class="kbd">回合 1</span> → <span class="kbd">回合 1.</span> → <span class="kbd">回合 2</span> → <span class="kbd">回合 2.</span>
+              </li>
               <li>无点与有点属于同一整回合的两个阶段，不是两个完整回合。</li>
-              <li>城市与皇冠增兵为每 2 tick 一次（服务器内部按偶数 tick 触发）。</li>
-              <li>所有已占领领地增兵为每 50 tick 一次。</li>
+              <li>所有已占领领地每 25 回合（50 个“半回合”）增加 1 兵力。</li>
+              <li>城市与皇冠每回合（2 个“半回合”）额外增加 1 兵力。</li>
             </ul>
           </div>
           <div class="rule-block">
