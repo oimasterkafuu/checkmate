@@ -106,7 +106,7 @@
         line-height: 1.6;
         word-break: break-all;
       }
-      .map-example-canvas-wrap {
+      .map-example-board-wrap {
         margin-top: 8px;
         border: 1px solid rgba(255, 255, 255, 0.14);
         background: rgba(255, 255, 255, 0.03);
@@ -114,28 +114,24 @@
         max-width: 100%;
         padding: 6px;
       }
-      .map-example-canvas {
-        display: block;
-        image-rendering: pixelated;
+      .map-example-board {
+        width: max-content;
       }
-      .map-example-legend {
-        margin-top: 8px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 10px;
-        font-size: 12px;
-        opacity: 0.9;
+      .map-example-board table {
+        border-spacing: 0;
       }
-      .map-example-legend-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .map-example-dot {
-        width: 10px;
-        height: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        box-sizing: border-box;
+      .map-example-board td {
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+        border: 1px solid black;
+        text-align: center;
+        text-shadow: 0 0 2px black;
+        padding: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        color: white;
+        user-select: none;
       }
     </style>
   </head>
@@ -246,111 +242,77 @@
     </div>
 
     <script>
-      const ownerPalette = ['#4ecdc4', '#ff6b6b', '#ffd166', '#5c7cfa', '#94d82d', '#f06595', '#66d9e8', '#ffa94d'];
+      const scaleSizes = [0, 20, 25, 32, 40, 50, 60];
+      let lastMapExamplesData = null;
+      let resizeTimer = 0;
 
-      function getOwnerColor(ownerId) {
-        if (!ownerId) return '#dadfe6';
-        return ownerPalette[(ownerId - 1) % ownerPalette.length];
+      function mapModeLabel(mapMode) {
+        return mapMode === 'maze' ? '峡谷回廊' : '标准地图';
       }
 
-      function classifyTile(code) {
-        if (code === 201) return { kind: 'mountain', owner: 0, color: '#374151' };
-        if (code === 200) return { kind: 'empty', owner: 0, color: '#f1f5f9' };
-        if (code === 204) return { kind: 'swamp', owner: 0, color: '#9ccab8' };
-        if (code === 205) return { kind: 'fog-swamp', owner: 0, color: '#6b7280' };
-        if (code === 203) return { kind: 'fog-mountain', owner: 0, color: '#4b5563' };
-        if (code === 202) return { kind: 'fog', owner: 0, color: '#9ca3af' };
-        if (code >= 150 && code < 200) {
-          const owner = code - 150;
-          return { kind: 'swamp', owner, color: owner ? getOwnerColor(owner) : '#9ccab8' };
-        }
-        if (code >= 100 && code < 150) {
-          const owner = code - 100;
-          return { kind: 'general', owner, color: owner ? getOwnerColor(owner) : '#d6b86f' };
-        }
-        if (code >= 50 && code < 100) {
-          const owner = code - 50;
-          return { kind: 'city', owner, color: owner ? getOwnerColor(owner) : '#d7c4a5' };
-        }
-        if (code < 50) {
-          const owner = code;
-          return { kind: 'land', owner, color: owner ? getOwnerColor(owner) : '#f1f5f9' };
-        }
-        return { kind: 'unknown', owner: 0, color: '#d1d5db' };
-      }
-
-      function drawMapExample(canvas, example) {
-        const wrap = canvas.parentElement;
-        const maxWidth = Math.max(200, Math.min(420, wrap.clientWidth - 4));
-        const cellSize = Math.max(8, Math.min(18, Math.floor(maxWidth / example.m)));
-        const width = example.m * cellSize;
-        const height = example.n * cellSize;
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        for (let i = 0; i < example.n; i += 1) {
-          for (let j = 0; j < example.m; j += 1) {
-            const code = example.grid_type[i * example.m + j];
-            const tile = classifyTile(code);
-            const x = j * cellSize;
-            const y = i * cellSize;
-            ctx.fillStyle = tile.color;
-            ctx.fillRect(x, y, cellSize, cellSize);
-
-            if (tile.kind === 'mountain') {
-              ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-              ctx.lineWidth = Math.max(1, Math.floor(cellSize / 8));
-              ctx.beginPath();
-              ctx.moveTo(x + cellSize * 0.2, y + cellSize * 0.2);
-              ctx.lineTo(x + cellSize * 0.8, y + cellSize * 0.8);
-              ctx.moveTo(x + cellSize * 0.8, y + cellSize * 0.2);
-              ctx.lineTo(x + cellSize * 0.2, y + cellSize * 0.8);
-              ctx.stroke();
-            } else if (tile.kind === 'city') {
-              const pad = Math.max(1, Math.floor(cellSize * 0.25));
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-              ctx.fillRect(x + pad, y + pad, cellSize - pad * 2, cellSize - pad * 2);
-            } else if (tile.kind === 'general') {
-              const radius = Math.max(1.5, cellSize * 0.24);
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-              ctx.beginPath();
-              ctx.arc(x + cellSize / 2, y + cellSize / 2, radius, 0, Math.PI * 2);
-              ctx.fill();
-            } else if (tile.kind === 'swamp') {
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-              ctx.fillRect(x, y + cellSize * 0.62, cellSize, Math.max(1, cellSize * 0.2));
-            }
+      function pickScale(mapCols, wrapWidth) {
+        const available = Math.max(220, wrapWidth - 12);
+        for (let scale = 6; scale >= 1; scale -= 1) {
+          if (mapCols * scaleSizes[scale] <= available) {
+            return scale;
           }
         }
+        return 1;
       }
 
-      function createLegend() {
-        const legend = document.createElement('div');
-        legend.className = 'map-example-legend';
-        const items = [
-          { label: '平原', color: '#f1f5f9' },
-          { label: '山地', color: '#374151' },
-          { label: '城市', color: '#d7c4a5' },
-          { label: '将军', color: '#ffd166' },
-          { label: '沼泽', color: '#9ccab8' },
-        ];
-        for (const item of items) {
-          const row = document.createElement('span');
-          row.className = 'map-example-legend-item';
-          const dot = document.createElement('span');
-          dot.className = 'map-example-dot';
-          dot.style.background = item.color;
-          const text = document.createElement('span');
-          text.textContent = item.label;
-          row.appendChild(dot);
-          row.appendChild(text);
-          legend.appendChild(row);
+      function buildCellHtml(code, army, scale) {
+        let cls = `s${scale}`;
+        let txt = '';
+        if (code < 200) {
+          if (code < 50) {
+            cls += ` c${code}`;
+          } else if (code < 100) {
+            cls += ` c${code - 50} city`;
+          } else if (code < 150) {
+            cls += ` c${code - 100} general`;
+          } else {
+            cls += ` c${code - 150} swamp`;
+          }
+          if (army || code === 50) {
+            txt = String(army);
+          }
+        } else if (code === 200) {
+          cls += ' empty';
+        } else if (code === 201) {
+          cls += ' mountain empty';
+        } else if (code === 202) {
+          cls += ' fog';
+        } else if (code === 203) {
+          cls += ' obstacle fog';
+        } else if (code === 204) {
+          cls += ' swamp';
+        } else if (code === 205) {
+          cls += ' swamp fog';
         }
-        return legend;
+        if (txt.length > 0 && scale === 1) {
+          txt = `<div class="txt">${txt}</div>`;
+        }
+        return `<td class="${cls}">${txt}</td>`;
+      }
+
+      function renderExampleBoard(container, example) {
+        const wrap = container.parentElement;
+        const scale = pickScale(example.m, wrap.clientWidth);
+        let html = '<table><tbody>';
+        for (let i = 0; i < example.n; i += 1) {
+          html += '<tr>';
+          for (let j = 0; j < example.m; j += 1) {
+            const idx = i * example.m + j;
+            html += buildCellHtml(example.grid_type[idx], example.army_cnt[idx], scale);
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
       }
 
       function renderMapExamples(data) {
+        lastMapExamplesData = data;
         const grid = document.getElementById('map-example-grid');
         grid.innerHTML = '';
         for (const item of data.examples) {
@@ -358,24 +320,37 @@
           card.className = 'map-example-card';
 
           const title = document.createElement('h4');
-          title.textContent = item.map_mode === 'maze' ? '峡谷回廊' : '标准地图';
+          title.textContent = mapModeLabel(item.map_mode);
 
           const meta = document.createElement('div');
           meta.className = 'map-example-meta';
           meta.textContent = `${item.n} x ${item.m} · ${data.players} 人 · seed: ${item.map_token}`;
 
-          const wrap = document.createElement('div');
-          wrap.className = 'map-example-canvas-wrap';
-          const canvas = document.createElement('canvas');
-          canvas.className = 'map-example-canvas';
-          wrap.appendChild(canvas);
+          const boardWrap = document.createElement('div');
+          boardWrap.className = 'map-example-board-wrap';
+          const board = document.createElement('div');
+          board.className = 'map-example-board';
+          boardWrap.appendChild(board);
 
           card.appendChild(title);
           card.appendChild(meta);
-          card.appendChild(wrap);
-          card.appendChild(createLegend());
+          card.appendChild(boardWrap);
           grid.appendChild(card);
-          drawMapExample(canvas, item);
+          renderExampleBoard(board, item);
+        }
+      }
+
+      function rerenderMapExamplesForResize() {
+        if (!lastMapExamplesData) {
+          return;
+        }
+        const boards = document.querySelectorAll('.map-example-board');
+        if (boards.length !== lastMapExamplesData.examples.length) {
+          renderMapExamples(lastMapExamplesData);
+          return;
+        }
+        for (let i = 0; i < boards.length; i += 1) {
+          renderExampleBoard(boards[i], lastMapExamplesData.examples[i]);
         }
       }
 
@@ -415,6 +390,11 @@
         } catch {
           setMapExampleStatus('加载失败，请稍后重试。');
         }
+      });
+
+      window.addEventListener('resize', function () {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(rerenderMapExamplesForResize, 120);
       });
 
       async function main() {
