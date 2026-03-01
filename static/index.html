@@ -5,7 +5,12 @@
       name="viewport"
       content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+      integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <link rel="stylesheet" href="/main.css" />
     <title>Checkmate!! - 首页</title>
   </head>
@@ -38,12 +43,26 @@
       }
       loadUser();
 
+      function normalizeRoomId(input) {
+        return String(input || '')
+          .trim()
+          .replace(/[^0-9A-Za-z_-]/g, '')
+          .slice(0, 15);
+      }
+
+      function gotoRoom() {
+        var room = normalizeRoomId($('#room-input').val());
+        if (!room) return;
+        $('#room-input').val(room);
+        window.location.pathname = '/games/' + room;
+      }
+
       $('#enter-room').on('click', function () {
-        location.href = '/games/' + $('#room-input').val();
+        gotoRoom();
       });
       $('#room-input').on('keypress', function (e) {
         if (e.keyCode == 13) {
-          location.href = '/games/' + $('#room-input').val();
+          gotoRoom();
         }
       });
       $('#rooms').on('click', function () {

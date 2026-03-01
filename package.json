@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/oimasterkafuu/checkmate#readme",
   "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
     "@fastify/static": "^9.0.0",
     "fastify": "^5.7.4",
     "jsonwebtoken": "^9.0.3",

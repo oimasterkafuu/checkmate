@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
@@ -26,6 +27,10 @@ const lobbyService = new LobbyService(replayStore);
 const webhookUpdater = new WebhookUpdater(app.log, runtimeEnv.webhookSecret);
 
 type PushWebhookPayload = { ref?: unknown };
+const GENERAL_RATE_LIMIT = { max: 1000, timeWindow: '1 minute' };
+const WEBHOOK_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
+const AUTH_PAGE_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
+const AUTH_ACTION_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 
 const parseJsonObject = (text: string): Record<string, unknown> | null => {
   try {
@@ -98,6 +103,12 @@ const boot = async (): Promise<void> => {
   await replayStore.ensureReady();
   await userStore.ensureReady();
 
+  await app.register(fastifyRateLimit, {
+    max: GENERAL_RATE_LIMIT.max,
+    timeWindow: GENERAL_RATE_LIMIT.timeWindow,
+  });
+  app.addHook('onRequest', app.rateLimit(GENERAL_RATE_LIMIT));
+
   app.addHook('onRequest', async (request, reply) => {
     const pathname = request.url.split('?')[0];
     if (authService.isPublicPath(pathname)) {
@@ -126,7 +137,7 @@ const boot = async (): Promise<void> => {
       done(null, payload);
     });
 
-    webhookApp.post('/postreceive', async (request, reply) => {
+    webhookApp.post('/postreceive', { config: { rateLimit: WEBHOOK_RATE_LIMIT } }, async (request, reply) => {
       const body = request.body;
       const rawBody = Buffer.isBuffer(body)
         ? body
@@ -165,7 +176,7 @@ const boot = async (): Promise<void> => {
     });
   });
 
-  app.get('/login', async (request, reply) => {
+  app.get('/login', { config: { rateLimit: AUTH_PAGE_RATE_LIMIT } }, async (request, reply) => {
     const token = authService.getTokenFromCookie(request.headers.cookie);
     const authUser = authService.verifyAuthToken(token);
     if (authUser) {
@@ -174,42 +185,46 @@ const boot = async (): Promise<void> => {
     return reply.sendFile('login.html');
   });
 
-  app.get('/api/auth/captcha', async (_request, reply) => {
+  app.get('/api/auth/captcha', { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } }, async (_request, reply) => {
     return reply.send(captchaService.createChallenge());
   });
 
-  app.post('/api/auth/register', async (request, reply) => {
-    const body = request.body as {
-      username?: string;
-      password?: string;
-      captchaId?: string;
-      captchaCode?: string;
-    };
-    const usernameRaw = String(body?.username ?? '');
-    const password = String(body?.password ?? '');
-    const captchaId = String(body?.captchaId ?? '');
-    const captchaCode = String(body?.captchaCode ?? '');
+  app.post(
+    '/api/auth/register',
+    { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } },
+    async (request, reply) => {
+      const body = request.body as {
+        username?: string;
+        password?: string;
+        captchaId?: string;
+        captchaCode?: string;
+      };
+      const usernameRaw = String(body?.username ?? '');
+      const password = String(body?.password ?? '');
+      const captchaId = String(body?.captchaId ?? '');
+      const captchaCode = String(body?.captchaCode ?? '');
 
-    const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
-    if (!captchaCheck.ok) {
-      return reply.code(400).send({ error: captchaCheck.error ?? '验证码校验失败。' });
-    }
+      const captchaCheck = captchaService.verifyAndConsume(captchaId, captchaCode);
+      if (!captchaCheck.ok) {
+        return reply.code(400).send({ error: captchaCheck.error ?? '验证码校验失败。' });
+      }
 
-    try {
-      const username = await userStore.register(usernameRaw, password);
-      const sessionId = await userStore.rotateSession(username);
-      authService.disconnectUserSockets(username);
-      const token = authService.signAuthToken(username, sessionId);
-      authService.setAuthCookie(reply, token);
-      return reply.send({ username });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '注册失败。';
-      const status = message.includes('存在') ? 409 : 400;
-      return reply.code(status).send({ error: message });
-    }
-  });
+      try {
+        const username = await userStore.register(usernameRaw, password);
+        const sessionId = await userStore.rotateSession(username);
+        authService.disconnectUserSockets(username);
+        const token = authService.signAuthToken(username, sessionId);
+        authService.setAuthCookie(reply, token);
+        return reply.send({ username });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '注册失败。';
+        const status = message.includes('存在') ? 409 : 400;
+        return reply.code(status).send({ error: message });
+      }
+    },
+  );
 
-  app.post('/api/auth/login', async (request, reply) => {
+  app.post('/api/auth/login', { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } }, async (request, reply) => {
     const body = request.body as {
       username?: string;
       password?: string;
@@ -239,7 +254,7 @@ const boot = async (): Promise<void> => {
     return reply.send({ username });
   });
 
-  app.post('/api/auth/logout', async (request, reply) => {
+  app.post('/api/auth/logout', { config: { rateLimit: AUTH_ACTION_RATE_LIMIT } }, async (request, reply) => {
     const token = authService.getTokenFromCookie(request.headers.cookie);
     const authUser = authService.verifyAuthToken(token);
     if (authUser) {
