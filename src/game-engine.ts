@@ -59,7 +59,7 @@ const clampMapSizeRatio = (value: number): number => {
   if (!Number.isFinite(value)) {
     return 0.5;
   }
-  return Math.max(0.2, Math.min(1.2, value));
+  return Math.max(0.2, Math.min(1.35, value));
 };
 
 const resolveRuntimeMapSizeRatio = (ratio: number, mapSizeVersion: 1 | 2): number => {
