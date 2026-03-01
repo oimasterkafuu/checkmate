@@ -2,13 +2,12 @@ import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DEFAULT_WEBHOOK_SECRET = 'kana-secret-change-me-in-dev-environment-haha-meow';
+const createRandomSecret = (): string => randomBytes(32).toString('hex');
 
 interface RuntimeEnvConfig {
   jwtSecret: string;
   webhookSecret: string;
   nodeEnv: string;
-  environment: string;
   createdKeys: string[];
 }
 
@@ -108,11 +107,23 @@ const ensureRuntimeEnv = (): RuntimeEnvConfig => {
     return nextValue;
   };
 
-  const jwtSecret = resolveValue('JWT_SECRET', () => randomBytes(16).toString('hex'));
-  const webhookSecret = resolveValue('WEBHOOK_SECRET', () => DEFAULT_WEBHOOK_SECRET);
+  const jwtSecret = resolveValue('JWT_SECRET', createRandomSecret);
+  const webhookSecret = resolveValue('WEBHOOK_SECRET', createRandomSecret);
 
-  const environment = resolveValue('environment', () => 'production');
-  const nodeEnv = resolveValue('NODE_ENV', () => environment);
+  const nodeEnv = (() => {
+    const existingNodeEnv = getNonEmpty(process.env.NODE_ENV);
+    if (existingNodeEnv) {
+      return existingNodeEnv;
+    }
+
+    const legacyEnvironment = getNonEmpty(process.env.environment);
+    const nextNodeEnv = legacyEnvironment ?? 'production';
+    process.env.NODE_ENV = nextNodeEnv;
+    if (!getNonEmpty(envFromFile.NODE_ENV) && !getNonEmpty(beforeLoad.NODE_ENV)) {
+      createdEntries.push(['NODE_ENV', nextNodeEnv]);
+    }
+    return nextNodeEnv;
+  })();
 
   appendEnvEntries(envPath, createdEntries);
 
@@ -120,10 +131,9 @@ const ensureRuntimeEnv = (): RuntimeEnvConfig => {
     jwtSecret,
     webhookSecret,
     nodeEnv,
-    environment,
     createdKeys: createdEntries.map(([key]) => key),
   };
 };
 
-export { DEFAULT_WEBHOOK_SECRET, ensureRuntimeEnv };
+export { ensureRuntimeEnv };
 export type { RuntimeEnvConfig };

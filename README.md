@@ -12,15 +12,6 @@ pnpm run start
 
 启动后访问 `http://localhost:23333/` 并注册账号。
 
-## 环境变量
-
-服务启动时会自动读取当前目录下 `.env`。如果以下变量缺失，会自动生成并写入 `.env`：
-
-- `WEBHOOK_SECRET`：默认写入 `kana-secret-change-me-in-dev-environment-haha-meow`
-- `JWT_SECRET`：自动生成 32 位随机字符串
-- `environment`：默认写入 `production`
-- `NODE_ENV`：默认跟随 `environment`（未配置时为 `production`）
-
 ## GitHub Webhook 自动更新
 
 - Webhook 地址：`POST /postreceive`
@@ -74,3 +65,6 @@ pnpm run start
   - 源分支名以 `dev/` 开头
   - 源分支来自当前仓库（不处理 fork 仓库分支）
 - 删除方式：调用 GitHub API 删除 `refs/heads/<head_ref>`
+
+另外，`Bump Version And Merge PR` 在自动 merge 成功后，也会在同一次运行内直接删除 `dev/*` 分支。  
+这样即使自动 merge 由 `GITHUB_TOKEN` 发起，仍能稳定完成分支清理。
