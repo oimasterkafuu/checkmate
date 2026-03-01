@@ -133,6 +133,20 @@
         margin: 0;
         line-height: 1.6;
       }
+      .kbd {
+        display: inline-block;
+        min-width: 18px;
+        padding: 0 6px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 12px;
+        line-height: 20px;
+        text-align: center;
+        color: #f0ffff;
+        white-space: nowrap;
+      }
       @media (max-width: 760px) {
         .rule-intro-grid {
           grid-template-columns: 1fr;
@@ -264,6 +278,34 @@
                 <span class="terrain-icon-cell swamp" aria-hidden="true"></span>
                 <p class="terrain-text"><b>沼泽</b>：占领后会持续消耗兵力。</p>
               </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-panel">
+        <h3>回合与操作说明</h3>
+        <div class="rule-intro-grid">
+          <div class="rule-block">
+            <h4>回合显示与增兵</h4>
+            <ul class="rule-list">
+              <li>顶部回合采用“半回合显示”：<span class="kbd">5</span> → <span class="kbd">5.</span> → <span class="kbd">6</span> → <span class="kbd">6.</span></li>
+              <li>无点与有点属于同一整回合的两个阶段，不是两个完整回合。</li>
+              <li>城市与皇冠增兵为每 2 tick 一次（服务器内部按偶数 tick 触发）。</li>
+              <li>所有已占领领地增兵为每 50 tick 一次。</li>
+            </ul>
+          </div>
+          <div class="rule-block">
+            <h4>鼠标与键盘</h4>
+            <ul class="rule-list">
+              <li>鼠标左键拖动：平移地图；滚轮：缩放地图。</li>
+              <li>点击己方格：选中；点击空白背景：取消当前选中。</li>
+              <li><span class="kbd">W/A/S/D</span> 或 <span class="kbd">↑/←/↓/→</span>：从选中格移动/进攻。</li>
+              <li><span class="kbd">Z</span>：切换全兵 / 半兵（50%）。</li>
+              <li><span class="kbd">Q</span>：清空操作队列；<span class="kbd">E</span>：撤销最后一步。</li>
+              <li><span class="kbd">Enter</span>：公屏聊天；<span class="kbd">T</span>：队伍聊天。</li>
+              <li><span class="kbd">Esc</span>：打开/关闭投降确认。</li>
+              <li><span class="kbd">Space</span>：清除当前选中。</li>
             </ul>
           </div>
         </div>
