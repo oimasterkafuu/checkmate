@@ -1,0 +1,12 @@
+{
+  "name": "random-patch-bot-template",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Checkmate random bot template with map patching",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}
