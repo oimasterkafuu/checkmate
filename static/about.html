@@ -73,6 +73,75 @@
         font-size: 13px;
         opacity: 0.78;
       }
+      .map-example-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .map-example-status {
+        font-size: 13px;
+        opacity: 0.86;
+      }
+      .map-example-grid {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+      }
+      .map-example-card {
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+      }
+      .map-example-card h4 {
+        margin: 0;
+        font-size: 16px;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .map-example-meta {
+        margin-top: 4px;
+        font-size: 12px;
+        opacity: 0.86;
+        line-height: 1.6;
+        word-break: break-all;
+      }
+      .map-example-board-wrap {
+        margin-top: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.03);
+        overflow: hidden;
+        max-width: 100%;
+        padding: 6px;
+      }
+      .map-example-board {
+        width: max-content;
+      }
+      .map-example-board table {
+        border-spacing: 0;
+      }
+      .map-example-board td {
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+        border: 1px solid black;
+        text-align: center;
+        text-shadow: 0 0 2px black;
+        padding: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        color: white;
+        user-select: none;
+        box-sizing: border-box;
+        width: var(--cell-size, 12px);
+        height: var(--cell-size, 12px);
+        max-width: var(--cell-size, 12px);
+        max-height: var(--cell-size, 12px);
+        min-width: var(--cell-size, 12px);
+        min-height: var(--cell-size, 12px);
+        background-size: var(--icon-size, 10px) var(--icon-size, 10px);
+        font-size: var(--font-size, 10px);
+      }
     </style>
   </head>
 
@@ -97,6 +166,16 @@
           本项目不是官方 generals.io 服务。页面中的来源信息用于致谢与许可证合规说明，
           便于追溯核心玩法、实现参考和协议来源。
         </p>
+      </section>
+
+      <section class="about-panel">
+        <h3>地图示例（4 人）</h3>
+        <p>下方示例由服务器实时生成，展示“标准地图”和“峡谷回廊”的地形差异。</p>
+        <div class="map-example-toolbar">
+          <button id="refresh-map-examples-btn" class="small">刷新示例</button>
+          <span id="map-example-status" class="map-example-status"></span>
+        </div>
+        <div id="map-example-grid" class="map-example-grid"></div>
       </section>
 
       <section class="about-panel">
@@ -172,21 +251,181 @@
     </div>
 
     <script>
+      let lastMapExamplesData = null;
+      let resizeTimer = 0;
+
+      function mapModeLabel(mapMode) {
+        return mapMode === 'maze' ? '峡谷回廊' : '标准地图';
+      }
+
+      function resolveScaleClass(cellSize) {
+        if (cellSize <= 20) return 1;
+        if (cellSize <= 25) return 2;
+        if (cellSize <= 32) return 3;
+        if (cellSize <= 40) return 4;
+        if (cellSize <= 50) return 5;
+        return 6;
+      }
+
+      function buildCellHtml(code, army, scaleClass) {
+        let cls = `s${scaleClass}`;
+        let txt = '';
+        if (code < 200) {
+          if (code < 50) {
+            cls += ` c${code}`;
+          } else if (code < 100) {
+            cls += ` c${code - 50} city`;
+          } else if (code < 150) {
+            cls += ` c${code - 100} general`;
+          } else {
+            cls += ` c${code - 150} swamp`;
+          }
+          if (army || code === 50) {
+            txt = String(army);
+          }
+        } else if (code === 200) {
+          cls += ' empty';
+        } else if (code === 201) {
+          cls += ' mountain empty';
+        } else if (code === 202) {
+          cls += ' fog';
+        } else if (code === 203) {
+          cls += ' obstacle fog';
+        } else if (code === 204) {
+          cls += ' swamp';
+        } else if (code === 205) {
+          cls += ' swamp fog';
+        }
+        if (txt.length > 0 && scaleClass === 1) {
+          txt = `<div class="txt">${txt}</div>`;
+        }
+        return `<td class="${cls}">${txt}</td>`;
+      }
+
+      function renderExampleBoard(container, example) {
+        const wrap = container.parentElement;
+        const availableWidth = Math.max(40, wrap.clientWidth - 2);
+        const cellSize = Math.max(4, Math.floor(availableWidth / example.m));
+        const scaleClass = resolveScaleClass(cellSize);
+        container.style.setProperty('--cell-size', `${cellSize}px`);
+        container.style.setProperty('--icon-size', `${Math.max(3, Math.floor(cellSize * 0.8))}px`);
+        container.style.setProperty('--font-size', `${Math.max(6, Math.floor(cellSize * 0.45))}px`);
+
+        let html = '<table><tbody>';
+        for (let i = 0; i < example.n; i += 1) {
+          html += '<tr>';
+          for (let j = 0; j < example.m; j += 1) {
+            const idx = i * example.m + j;
+            html += buildCellHtml(example.grid_type[idx], example.army_cnt[idx], scaleClass);
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      }
+
+      function renderMapExamples(data) {
+        lastMapExamplesData = data;
+        const grid = document.getElementById('map-example-grid');
+        grid.innerHTML = '';
+        const boardItems = [];
+        for (const item of data.examples) {
+          const card = document.createElement('article');
+          card.className = 'map-example-card';
+
+          const title = document.createElement('h4');
+          title.textContent = mapModeLabel(item.map_mode);
+
+          const meta = document.createElement('div');
+          meta.className = 'map-example-meta';
+          meta.textContent = `${item.n} x ${item.m} · ${data.players} 人 · seed: ${item.map_token}`;
+
+          const boardWrap = document.createElement('div');
+          boardWrap.className = 'map-example-board-wrap';
+          const board = document.createElement('div');
+          board.className = 'map-example-board';
+          boardWrap.appendChild(board);
+
+          card.appendChild(title);
+          card.appendChild(meta);
+          card.appendChild(boardWrap);
+          grid.appendChild(card);
+          boardItems.push({ board, item });
+        }
+
+        for (const boardItem of boardItems) {
+          renderExampleBoard(boardItem.board, boardItem.item);
+        }
+      }
+
+      function rerenderMapExamplesForResize() {
+        if (!lastMapExamplesData) {
+          return;
+        }
+        const boards = document.querySelectorAll('.map-example-board');
+        if (boards.length !== lastMapExamplesData.examples.length) {
+          renderMapExamples(lastMapExamplesData);
+          return;
+        }
+        for (let i = 0; i < boards.length; i += 1) {
+          renderExampleBoard(boards[i], lastMapExamplesData.examples[i]);
+        }
+      }
+
+      function setMapExampleStatus(text) {
+        document.getElementById('map-example-status').textContent = text;
+      }
+
+      async function loadMapExamples() {
+        setMapExampleStatus('加载中…');
+        const res = await fetch('/api/map-examples', { cache: 'no-store' });
+        if (!res.ok) {
+          throw new Error('load map examples failed');
+        }
+        const data = await res.json();
+        renderMapExamples(data);
+        setMapExampleStatus('');
+      }
+
       async function loadUser() {
         const res = await fetch('/api/auth/me');
         if (!res.ok) {
           location.href = '/login';
-          return;
+          return false;
         }
         const data = await res.json();
         document.getElementById('account-name').textContent = data.username;
+        return true;
       }
 
       document.getElementById('back-home-btn').addEventListener('click', function () {
         location.href = '/';
       });
 
-      loadUser();
+      document.getElementById('refresh-map-examples-btn').addEventListener('click', async function () {
+        try {
+          await loadMapExamples();
+        } catch {
+          setMapExampleStatus('加载失败，请稍后重试。');
+        }
+      });
+
+      window.addEventListener('resize', function () {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(rerenderMapExamplesForResize, 120);
+      });
+
+      async function main() {
+        const authed = await loadUser();
+        if (!authed) return;
+        try {
+          await loadMapExamples();
+        } catch {
+          setMapExampleStatus('加载失败，请稍后重试。');
+        }
+      }
+
+      main();
     </script>
   </body>
 </html>

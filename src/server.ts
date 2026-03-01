@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { isIP } from 'node:net';
 import fastifyRateLimit from '@fastify/rate-limit';
@@ -6,6 +7,7 @@ import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { UserStore } from './auth-store';
 import { GameEngine } from './game-engine';
+import { resolveMapSizeRatioByPlayers } from './map/map-size';
 import { encodeReplayPatchBinary } from './replay-patch-binary';
 import { isReplayIdValid, ReplayStore } from './replay-store';
 import { ensureRuntimeEnv } from './runtime-env';
@@ -32,6 +34,8 @@ const GENERAL_RATE_LIMIT = { max: 1000, timeWindow: '1 minute' };
 const WEBHOOK_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 const AUTH_PAGE_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
 const AUTH_ACTION_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
+const MAP_EXAMPLE_PLAYER_COUNT = 4;
+const MAP_EXAMPLE_MAP_MODES: LobbyConfig['map_mode'][] = ['random', 'maze'];
 const RATE_LIMIT_REAL_IP_HEADERS = [
   'cf-connecting-ip',
   'true-client-ip',
@@ -40,6 +44,41 @@ const RATE_LIMIT_REAL_IP_HEADERS = [
   'x-client-ip',
   'forwarded',
 ] as const;
+
+const buildMapExample = async (
+  mapMode: LobbyConfig['map_mode'],
+): Promise<{
+  map_mode: LobbyConfig['map_mode'];
+  map_token: string;
+  n: number;
+  m: number;
+  grid_type: number[];
+  army_cnt: number[];
+}> => {
+  const mapToken = randomBytes(8).toString('hex');
+  const mapSizeRatio = resolveMapSizeRatioByPlayers(MAP_EXAMPLE_PLAYER_COUNT);
+  const playerNames = Array.from({ length: MAP_EXAMPLE_PLAYER_COUNT }, (_, index) => `P${index + 1}`);
+  const playerTeams = Array.from({ length: MAP_EXAMPLE_PLAYER_COUNT }, (_, index) => index + 1);
+  const generated = await GameEngine.buildReplayBaseMap({
+    width_ratio: mapSizeRatio,
+    height_ratio: mapSizeRatio,
+    city_ratio: 0.5,
+    mountain_ratio: 0.5,
+    swamp_ratio: 0,
+    speed: 1,
+    allow_team: false,
+    map_token: mapToken,
+    map_mode: mapMode,
+    player_names: playerNames,
+    player_teams: playerTeams,
+    map_size_version: 2,
+  });
+  return {
+    map_mode: mapMode,
+    map_token: mapToken,
+    ...generated,
+  };
+};
 
 const normalizeIpToken = (token: string): string | null => {
   const trimmed = token.trim().replace(/^"(.+)"$/u, '$1');
@@ -483,6 +522,19 @@ const boot = async (): Promise<void> => {
 
   app.get('/api/rooms', async (_request, reply) => {
     return reply.send(lobbyService.listLobbyRooms());
+  });
+
+  app.get('/api/map-examples', async (request, reply) => {
+    const authUser = (request as AuthRequest).authUser;
+    if (!authUser) {
+      return reply.code(401).send({ error: '未登录或登录已失效。' });
+    }
+
+    const examples = await Promise.all(MAP_EXAMPLE_MAP_MODES.map((mapMode) => buildMapExample(mapMode)));
+    return reply.send({
+      players: MAP_EXAMPLE_PLAYER_COUNT,
+      examples,
+    });
   });
 
   app.get('/favicon.ico', async (_request, reply) => reply.code(204).send());
