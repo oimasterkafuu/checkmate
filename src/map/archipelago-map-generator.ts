@@ -234,6 +234,51 @@ const pickBestPlayerIslands = (
   return bestSelection;
 };
 
+const canPlaceMountainWithoutTrappingCity = (
+  n: number,
+  m: number,
+  gridType: Tile[][],
+  x: number,
+  y: number,
+): boolean => {
+  if (!isInBounds(n, m, x, y)) {
+    return false;
+  }
+  if (gridType[x][y] === -1 || gridType[x][y] === -2) {
+    return false;
+  }
+
+  for (let d = 0; d < 4; d += 1) {
+    const cx = x + MOVE_DX[d];
+    const cy = y + MOVE_DY[d];
+    if (!isInBounds(n, m, cx, cy) || gridType[cx][cy] !== -1) {
+      continue;
+    }
+
+    let hasExit = false;
+    for (let k = 0; k < 4; k += 1) {
+      const nx = cx + MOVE_DX[k];
+      const ny = cy + MOVE_DY[k];
+      if (!isInBounds(n, m, nx, ny)) {
+        continue;
+      }
+      if (nx === x && ny === y) {
+        continue;
+      }
+      if (gridType[nx][ny] !== 1) {
+        hasExit = true;
+        break;
+      }
+    }
+
+    if (!hasExit) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const canAddCoastlineCell = (
   n: number,
   m: number,
@@ -376,6 +421,8 @@ const placePlayerIslands = (
 
 const placeNeutralIslands = (
   rng: SeededRandom,
+  n: number,
+  m: number,
   gridType: Tile[][],
   armyCnt: number[][],
   islands: IslandInfo[],
@@ -407,13 +454,22 @@ const placeNeutralIslands = (
         gridType[x][y] = -1;
         armyCnt[x][y] = rng.intInclusive(40, 50);
       } else {
+        if (!canPlaceMountainWithoutTrappingCity(n, m, gridType, x, y)) {
+          continue;
+        }
         gridType[x][y] = 1;
       }
     }
   }
 };
 
-const placeIslandMountains = (rng: SeededRandom, gridType: Tile[][], m: number, islands: IslandInfo[]): void => {
+const placeIslandMountains = (
+  rng: SeededRandom,
+  n: number,
+  m: number,
+  gridType: Tile[][],
+  islands: IslandInfo[],
+): void => {
   for (let i = 0; i < islands.length; i += 1) {
     const island = islands[i];
     const mountainCount = rng.intInclusive(1, 2);
@@ -427,10 +483,14 @@ const placeIslandMountains = (rng: SeededRandom, gridType: Tile[][], m: number, 
     }
 
     shuffle(candidates, rng);
-    const limit = Math.min(mountainCount, candidates.length);
-    for (let j = 0; j < limit; j += 1) {
+    let placed = 0;
+    for (let j = 0; j < candidates.length && placed < mountainCount; j += 1) {
       const [x, y] = candidates[j];
+      if (!canPlaceMountainWithoutTrappingCity(n, m, gridType, x, y)) {
+        continue;
+      }
       gridType[x][y] = 1;
+      placed += 1;
     }
   }
 };
@@ -440,12 +500,13 @@ const placeSwampMountains = (
   n: number,
   m: number,
   gridType: Tile[][],
+  islandIdGrid: number[][],
   totalCells: number,
 ): void => {
   const swampCells: Array<[number, number]> = [];
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
-      if (gridType[i][j] === 2) {
+      if (gridType[i][j] === 2 && islandIdGrid[i][j] === -1) {
         swampCells.push([i, j]);
       }
     }
@@ -456,9 +517,34 @@ const placeSwampMountains = (
     swampCells.length,
     Math.max(1, Math.floor(totalCells * (0.004 + rng.next() * 0.004))),
   );
-  for (let i = 0; i < target; i += 1) {
+  let placed = 0;
+  for (let i = 0; i < swampCells.length && placed < target; i += 1) {
     const [x, y] = swampCells[i];
+    let valid = true;
+    for (let dx = -1; dx <= 1 && valid; dx += 1) {
+      for (let dy = -1; dy <= 1; dy += 1) {
+        if (dx === 0 && dy === 0) {
+          continue;
+        }
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!isInBounds(n, m, nx, ny)) {
+          continue;
+        }
+        if (islandIdGrid[nx][ny] !== -1) {
+          valid = false;
+          break;
+        }
+      }
+    }
+    if (!valid) {
+      continue;
+    }
+    if (!canPlaceMountainWithoutTrappingCity(n, m, gridType, x, y)) {
+      continue;
+    }
     gridType[x][y] = 1;
+    placed += 1;
   }
 };
 
@@ -537,9 +623,9 @@ const generateArchipelagoMap = (
       continue;
     }
 
-    placeNeutralIslands(rng, gridType, armyCnt, islands, playerIslandIds);
-    placeIslandMountains(rng, gridType, m, islands);
-    placeSwampMountains(rng, n, m, gridType, totalCells);
+    placeNeutralIslands(rng, n, m, gridType, armyCnt, islands, playerIslandIds);
+    placeIslandMountains(rng, n, m, gridType, islands);
+    placeSwampMountains(rng, n, m, gridType, islandIdGrid, totalCells);
 
     const st = build2D(n, m, false);
     for (let i = 0; i < n; i += 1) {
