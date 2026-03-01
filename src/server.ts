@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { isIP } from 'node:net';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
@@ -31,6 +32,139 @@ const GENERAL_RATE_LIMIT = { max: 1000, timeWindow: '1 minute' };
 const WEBHOOK_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 const AUTH_PAGE_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
 const AUTH_ACTION_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
+const RATE_LIMIT_REAL_IP_HEADERS = [
+  'cf-connecting-ip',
+  'true-client-ip',
+  'x-real-ip',
+  'x-forwarded-for',
+  'x-client-ip',
+  'forwarded',
+] as const;
+
+const normalizeIpToken = (token: string): string | null => {
+  const trimmed = token.trim().replace(/^"(.+)"$/u, '$1');
+  if (!trimmed || trimmed.toLowerCase() === 'unknown') {
+    return null;
+  }
+
+  const strippedForPrefix = trimmed
+    .replace(/^for=/iu, '')
+    .trim()
+    .replace(/^"(.+)"$/u, '$1');
+  const bracketWrapped = strippedForPrefix.match(/^\[([^[\]]+)\](?::\d+)?$/u);
+  const maybeIp = bracketWrapped ? bracketWrapped[1] : strippedForPrefix;
+  const normalized = maybeIp.startsWith('::ffff:') ? maybeIp.slice(7) : maybeIp;
+
+  if (isIP(normalized)) {
+    return normalized;
+  }
+
+  const ipv4WithPort = normalized.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/u);
+  if (ipv4WithPort && isIP(ipv4WithPort[1])) {
+    return ipv4WithPort[1];
+  }
+
+  return null;
+};
+
+const isPrivateOrLoopbackIp = (ip: string): boolean => {
+  if (isIP(ip) === 4) {
+    const parts = ip.split('.').map((part) => Number.parseInt(part, 10));
+    const [a, b] = parts;
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254)
+    );
+  }
+
+  const lowered = ip.toLowerCase();
+  return (
+    lowered === '::1' ||
+    lowered === '::' ||
+    lowered.startsWith('fc') ||
+    lowered.startsWith('fd') ||
+    lowered.startsWith('fe8') ||
+    lowered.startsWith('fe9') ||
+    lowered.startsWith('fea') ||
+    lowered.startsWith('feb')
+  );
+};
+
+const extractHeaderIpCandidates = (value: unknown): string[] => {
+  const rawValues: string[] = [];
+  if (typeof value === 'string') {
+    rawValues.push(value);
+  } else if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === 'string') {
+        rawValues.push(item);
+      }
+    }
+  }
+
+  const candidates: string[] = [];
+  for (const rawValue of rawValues) {
+    for (const entry of rawValue.split(',')) {
+      const trimmed = entry.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      const lowered = trimmed.toLowerCase();
+      if (lowered.includes('for=')) {
+        const segments = trimmed.split(';');
+        const forSegment = segments.find((segment) => segment.trim().toLowerCase().startsWith('for='));
+        if (forSegment) {
+          candidates.push(forSegment.trim());
+          continue;
+        }
+      }
+      candidates.push(trimmed);
+    }
+  }
+  return candidates;
+};
+
+const getRealIpFromHeaders = (request: FastifyRequest): string | null => {
+  const headers = request.headers as Record<string, unknown>;
+
+  for (const header of RATE_LIMIT_REAL_IP_HEADERS) {
+    const candidates = extractHeaderIpCandidates(headers[header]);
+    for (const candidate of candidates) {
+      const normalized = normalizeIpToken(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+  return null;
+};
+
+const getRemoteIp = (request: FastifyRequest): string | null => {
+  const remoteAddress = request.socket.remoteAddress;
+  if (typeof remoteAddress === 'string') {
+    const normalized = normalizeIpToken(remoteAddress);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return typeof request.ip === 'string' ? normalizeIpToken(request.ip) : null;
+};
+
+const resolveRateLimitKey = (request: FastifyRequest): string => {
+  const remoteIp = getRemoteIp(request);
+  if (remoteIp && isPrivateOrLoopbackIp(remoteIp)) {
+    const realIp = getRealIpFromHeaders(request);
+    if (realIp) {
+      return realIp;
+    }
+  }
+  return remoteIp ?? 'unknown';
+};
 
 const parseJsonObject = (text: string): Record<string, unknown> | null => {
   try {
@@ -106,6 +240,7 @@ const boot = async (): Promise<void> => {
   await app.register(fastifyRateLimit, {
     max: GENERAL_RATE_LIMIT.max,
     timeWindow: GENERAL_RATE_LIMIT.timeWindow,
+    keyGenerator: resolveRateLimitKey,
   });
   app.addHook('onRequest', app.rateLimit(GENERAL_RATE_LIMIT));
 
