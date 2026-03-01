@@ -92,7 +92,9 @@ const shuffleInPlace = <T>(items: T[]): T[] => {
 class CaptchaService {
   private readonly ttlMs = 5 * 60 * 1000;
 
-  private readonly codeLength = 4;
+  private readonly minCodeLength = 4;
+
+  private readonly maxCodeLength = 6;
 
   private readonly minSolveMs = 1100;
 
@@ -159,8 +161,9 @@ class CaptchaService {
   }
 
   private buildCode(): string {
+    const targetLength = randomInt(this.minCodeLength, this.maxCodeLength + 1);
     let code = '';
-    for (let i = 0; i < this.codeLength; i += 1) {
+    for (let i = 0; i < targetLength; i += 1) {
       code += randomCharFrom(CAPTCHA_CHARS);
     }
     return code;
@@ -222,12 +225,13 @@ class CaptchaService {
     const textZoneMaxX = clamp(startX + totalWidth + 10, 0, this.width);
     const textZoneMinY = clamp(startY - 8, 0, this.height);
     const textZoneMaxY = clamp(startY + glyphHeight + 8, 0, this.height);
-    const interferenceDots = Array.from({ length: 26 }, () => {
+    const interferenceDots = Array.from({ length: 12 }, () => {
       const nearText = randomFloat(0, 1) < 0.72;
       const cx = nearText ? randomFloat(textZoneMinX, textZoneMaxX) : randomFloat(0, this.width);
       const cy = nearText ? randomFloat(textZoneMinY, textZoneMaxY) : randomFloat(0, this.height);
-      const r = randomFloat(0.4, 1.9).toFixed(2);
-      const opacity = randomFloat(0.36, 0.86).toFixed(2);
+      // Keep interference blobs close to actual character scale.
+      const r = randomFloat(glyphWidth * 0.24, glyphWidth * 0.56).toFixed(2);
+      const opacity = randomFloat(0.18, 0.42).toFixed(2);
       const color = randomInkColor();
       return `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r}" fill="${color}" fill-opacity="${opacity}"/>`;
     }).join('');
