@@ -1,6 +1,6 @@
 {
   "name": "checkmate",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Checkmate!!",
   "main": "dist/server.js",
   "scripts": {
