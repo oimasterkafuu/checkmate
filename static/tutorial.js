@@ -89,12 +89,6 @@
       targets: [POS.enemyLand],
     },
     {
-      title: '兵力不足时先后方集兵',
-      body: '如果正面没打下来，先从后方回拉兵力，再集中推进。',
-      hint: '先补兵，再继续攻击高亮目标格。',
-      targets: [],
-    },
-    {
       title: '攻击敌方城市',
       body: '夺取敌方城市可以压制对方增兵能力。',
       hint: '目标：占领高亮敌方城市。',
@@ -107,6 +101,12 @@
       targets: [POS.enemyCrown],
     },
     {
+      title: '兵力不足时先后方集兵',
+      body: '第一次进攻皇冠如果没打下来，先从后方回拉兵力，再集中推进。',
+      hint: '先补兵，再继续攻击高亮皇冠。',
+      targets: [POS.enemyCrown],
+    },
+    {
       title: '教程完成',
       body: '你已完成核心流程：拖图、缩放、探图、夺城、斩首。',
       hint: '可点击“重置教程”再练一次，然后返回首页进入实战。',
@@ -115,9 +115,9 @@
   ];
 
   const STEP_ENEMY_LAND = 8;
-  const STEP_REINFORCE = 9;
-  const STEP_ENEMY_CITY = 10;
-  const STEP_ENEMY_CROWN = 11;
+  const STEP_ENEMY_CITY = 9;
+  const STEP_ENEMY_CROWN = 10;
+  const STEP_REINFORCE = 11;
 
   const dom = {};
   let state = null;
@@ -165,8 +165,7 @@
       enemyDefeated: false,
       reinforceContext: {
         active: false,
-        returnStep: -1,
-        target: null,
+        prompted: false,
       },
       moveMode: 1,
       panX: INITIAL_PAN_X,
@@ -324,12 +323,6 @@
 
   function getStepTargets(index) {
     const step = STEP_LIST[index] || STEP_LIST[STEP_LIST.length - 1];
-    if (index === STEP_REINFORCE) {
-      const reinforceTarget = state.reinforceContext && state.reinforceContext.target;
-      if (Array.isArray(reinforceTarget) && reinforceTarget.length === 2) {
-        return new Set([reinforceTarget[0] + ',' + reinforceTarget[1]]);
-      }
-    }
     const targets = Array.isArray(step.targets) ? step.targets : [];
     const set = new Set();
     for (let i = 0; i < targets.length; i += 1) {
@@ -561,23 +554,17 @@
     evaluateStepProgress();
   }
 
-  function triggerReinforceStep(targetX, targetY) {
-    if (!inBounds(targetX, targetY)) {
+  function triggerReinforceStep() {
+    if (state.currentStep !== STEP_ENEMY_CROWN) {
       return;
     }
-    if (state.currentStep !== STEP_ENEMY_LAND && state.currentStep !== STEP_ENEMY_CITY && state.currentStep !== STEP_REINFORCE) {
+    if (state.reinforceContext.prompted) {
       return;
     }
 
-    if (state.currentStep !== STEP_REINFORCE) {
-      state.reinforceContext.active = true;
-      state.reinforceContext.returnStep = state.currentStep;
-    }
-    state.reinforceContext.target = [targetX, targetY];
-
-    if (state.currentStep !== STEP_REINFORCE) {
-      enterStep(STEP_REINFORCE);
-    }
+    state.reinforceContext.active = true;
+    state.reinforceContext.prompted = true;
+    enterStep(STEP_REINFORCE);
   }
 
   function applyCaptureIfEnemyDefeated(crownX, crownY) {
@@ -651,8 +638,8 @@
     }
 
     to.army -= movingArmy;
-    if (to.owner === ENEMY_ID) {
-      triggerReinforceStep(cmd.toX, cmd.toY);
+    if (to.owner === ENEMY_ID && to.terrain === 'crown') {
+      triggerReinforceStep();
     }
     if (to.army === 0 && to.terrain === 'plain') {
       to.owner = 0;
@@ -802,23 +789,12 @@
           enterStep(STEP_ENEMY_CITY);
         }
         break;
-      case STEP_REINFORCE: {
-        const target = state.reinforceContext.target;
-        if (Array.isArray(target) && target.length === 2 && isOwned(target)) {
-          const returnStep = state.reinforceContext.returnStep;
+      case STEP_REINFORCE:
+        if (state.enemyDefeated || isOwned(POS.enemyCrown)) {
           state.reinforceContext.active = false;
-          state.reinforceContext.returnStep = -1;
-          state.reinforceContext.target = null;
-          if (returnStep === STEP_ENEMY_LAND) {
-            enterStep(STEP_ENEMY_CITY);
-          } else if (returnStep === STEP_ENEMY_CITY) {
-            enterStep(STEP_ENEMY_CROWN);
-          } else {
-            nextStep();
-          }
+          enterStep(STEP_LIST.length - 1);
         }
         break;
-      }
       case STEP_ENEMY_CITY:
         if (isOwned(POS.enemyCity)) {
           enterStep(STEP_ENEMY_CROWN);
@@ -826,7 +802,7 @@
         break;
       case STEP_ENEMY_CROWN:
         if (state.enemyDefeated || isOwned(POS.enemyCrown)) {
-          nextStep();
+          enterStep(STEP_LIST.length - 1);
         }
         break;
       default:
