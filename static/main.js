@@ -791,7 +791,7 @@ $(document).ready(function () {
         htmlescape(data.text) +
         '</p>';
       if (data.team) {
-        th = '<span style="font-family:Quicksand-Bold">' + teamPrefix + '</span>' + th;
+        th = '<span style="font-family:Quicksand-Bold,HYMaQiDuo-Bold">' + teamPrefix + '</span>' + th;
       }
       th = '<p class="chat-message">' + th;
     } else {
