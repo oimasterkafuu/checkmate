@@ -1,0 +1,112 @@
+Expansion ideas
+
+
+
+ACTUALLY BACKPACK EXPANSION!
+	- Limit expansion to logical territory.
+		- find all territory on the shortest path between my territory and theirs?
+Fix worth attacking and subsegment
+	- switch off of always using general path? Switch to max path instead and gather to that?
+	- maybe switch to gather attacks?
+
+
+
+
+Spraget said i'm retarded and to use 2 tiles first on round 2 before attacking. Duh.
+
+Plan expansion path with largest tile,
+then next largest tile(s) not included in above path,
+then next, and so on until no tiles remain or time is used up.
+
+
+When gathering to tiles in our territory, first do an expansion from it and see the max amount of army used before repeatedly traversing over shitty territory, and don't gather more army than that.
+
+[2:21 PM] EklipZ: goals for today: fix expansion. Implement basic city contestation.
+Goals for tomorrow: Army tracking and interception
+[2:23 PM] EklipZ: @Ethryn @general hitler @spraget  is it generally accepted that when you see an opp take a city in the relative early game, it is better to finish out the round expanding / attacking and then take a city yourself only at the start of the next round? (instead of immediately taking a city yourself even mid-round like human.exe currently does?)
+
+
+[2:25 PM] EklipZ: 1: gather ~ half the time, 2: launch attack up to border, 3: do stuff with army (either dive in or take tiles)
+[2:25 PM] EklipZ: so if you're at stage 1 when you see them take city, you take city immediately, stage 2 (attack hasn't reached border yet), ??? stage 3 continue attack
+[2:27 PM] Ethryn: something like that
+[2:27 PM] Ethryn: stage two really depends
+[2:27 PM] Ethryn: if i think i can take a bunch of tiles before the end of the round
+[2:27 PM] Ethryn: i will
+[2:27 PM] Ethryn: if not
+[2:27 PM] Ethryn: i'll go for a city
+
+
+
+
+
+
+https://puu.sh/E0y8I/5035d1b34b.png
+[11:13 PM] EklipZ: can you describe your strategy for choosing where the green arrows go?
+[11:14 PM] EklipZ: i can easily gather to all leaves, but that ends up just blobbing (like the bot used to if you remember many many iterations ago)
+[11:14 PM] EklipZ: so there needs to be intelligent selection on specific points to take some flanks to, but I haven't come up with a process for that
+https://puu.sh/E0y8I/5035d1b34b.png
+[11:14 PM] Ethryn: green arrows are basically to cover all potential attack routes and anything that's too far from where i want to send my army
+[11:14 PM] EklipZ: i've been considering it for a bit, but don't have a good idea on how I would select that
+[11:14 PM] Ethryn: idk how to translate that into an algorithm though
+[11:15 PM] EklipZ: yeah, thats the hard part really
+[11:15 PM] Ethryn: it's also dependent on map size -- and terrain and stuff
+[11:16 PM] Ethryn: if there's only one exit to a cavelike place and not many towers, i will barrel all my troops out of there
+[11:16 PM] Ethryn: if there are towers, i might try to take a bunch of land inside and quickly gather for a tower on round3
+[11:17 PM] Ethryn: if it's a large map, i'll lean more on exploring over defending
+[11:17 PM] Ethryn: if it's a strong opponent with not many attack routes, i'd go for a slightly later attack
+[11:17 PM] Ethryn: if it's a strong opponent with lots of attack routes, i send out lots of small feelers and then launch my troops from my general without much gathering
+[11:17 PM] EklipZ: this is good stuff, but specifically in the context of selecting green arrows to push outward
+[11:18 PM] Ethryn: basically i pick where i think the enemy general is
+[11:18 PM] Ethryn: or where i want to explore
+[11:18 PM] Ethryn: pick a route there
+[11:18 PM] Ethryn: and then everything else is probably green arrows
+[11:18 PM] Ethryn: exceptions being when i want more troops if i think a collision is more likely
+[11:19 PM] Ethryn: the more likely i think i'll run into an army, the more gathering i do and the less green arrows
+[11:19 PM] Ethryn: i'm still not sure about where though.. ah! i just pick the very outskirts of my territory and expand outwards
+[11:20 PM] EklipZ: basically trying to maximize expansion into the chokes on the way to where you think the enemy spawn might be
+[11:20 PM] EklipZ: hm
+[11:20 PM] Ethryn: mm yeah that sounds about right
+[11:21 PM] EklipZ: hm
+[11:21 PM] EklipZ: hmmmmmmmmmm
+[11:21 PM] EklipZ: slime mold
+[11:21 PM] EklipZ: https://www.citylab.com/transportation/2012/07/mapping-tokyos-train-system-slime-mold/2679/
+CityLab
+Mapping Tokyo's Train System in Slime Mold
+In the future, urban planners could lose their jobs to ultra-efficient slime molds.
+
+[11:22 PM] EklipZ: need to pick the chokes, and just ooze troops towards them like slime mold
+[11:22 PM] EklipZ: I think its like a 3 algorithm procedure or something but yeah I think thats doable now that I'm really thinking it through
+[11:23 PM] EklipZ: (where a choke might just be a corner going around some mountains, I consider any tile that must always be on the shortest path a choke, even if you could technically go around it with no obstacles)
+[11:27 PM] EklipZ: I think the process would be:
+
+[11:28 PM] EklipZ: and you do this same green line thing once the map has been covered and you're actually fighting for territory, right? Pretty similar process I imagine?
+[11:33 PM] EklipZ: so effectively, he needs to use some of his leaves while waiting a little longer to launch his main attack
+[11:33 PM] EklipZ: is more or less the synopsis on why he is getting behind?
+[11:34 PM] EklipZ: roughly the same conclusion i came to, but you had a lot of insights i was missing
+[11:34 PM] Ethryn: yeah 
+> so effectively, he needs to use some of his leaves while waiting a little longer to launch his main attack
+sounds very right
+[11:35 PM] EklipZ: so what about more of the tactical aspects of play? After I get all of ^ touched up, i'm going to be working on tactics / micro
+[11:35 PM] EklipZ: what about how you decide when to launch an attack, when to split and leave half your army behind, etc?
+[11:35 PM] EklipZ: like, when do you decide to wait until you see the opps army before launching? etc
+[11:38 PM] Ethryn: land counts
+[11:38 PM] Ethryn: if i'm ahead in land, i defend, otherwise i attack is the most general rule of thumb
+
+
+
+
+^ TLDR
+it's also dependent on map size -- and terrain and stuff
+if there's only one exit to a cavelike place and not many towers, i will barrel all my troops out of there
+if there are towers, i might try to take a bunch of land inside and quickly gather for a tower on round3
+if it's a large map, i'll lean more on exploring over defending
+if it's a strong opponent with not many attack routes, i'd go for a slightly later attack
+if it's a strong opponent with lots of attack routes, i send out lots of small feelers and then launch my troops from my general without much gathering
+
+
+Expand army that is closer to flanks towards flanks. 1 move tile taking is often superior here. Dont gather it to main path unless on super-defense.
+    - https://puu.sh/E0y8I/5035d1b34b.png
+
+Implement Prune for MST gather, then switch from get_gather_move or whatever to the new one.
+Go on super defense if our general found and opp appears to stop expanding.
+Now that we have analysis on threats, gather to chokes.

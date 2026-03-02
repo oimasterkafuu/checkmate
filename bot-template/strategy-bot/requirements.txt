@@ -1,0 +1,24 @@
+# Core runtime
+logbook
+requests
+certifi
+python-socketio[client]>=5.11,<6
+
+# Strategy dependencies (same behavior as upstream)
+numpy==2.2
+numba
+scipy
+nashpy
+pyzmq
+pcst_fast
+networkx
+matplotlib
+heapq_max
+disjoint-set
+unionfind
+pandas
+tqdm
+
+# Optional (not required for default BOT_NO_UI=1 run):
+# pygame
+# cppimport / cython / pybind11 are optional accelerators.

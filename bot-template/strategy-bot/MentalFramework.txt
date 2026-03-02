@@ -1,0 +1,54 @@
+THIS IS FOR BUILDING A MENTAL FRAMEWORK FOR HOW I WANT THE BOT TO WORK.
+	This is not necessarily how the bot works now (like, at all).
+
+Keywords to be familiar with:
+Standing Army - A players army - their tile count. This is the maximum amount of army they could possibly attack or defend with, since they must leave 1 army on each tile they own.
+
+
+Priority order of precedence
+    Defence
+    City contestation
+    maintaining defensive minimum spanning tree smaller than path to enemy fog (or closest enemy army)
+    army contesting (do not let enemy armies onto our territory freely)
+    vision contesting
+    taking cities
+
+
+
+
+Things that are inherently BAD and assumptions are made below to assume you are avoiding them:
+	Engaging multiple players at the same time in FFA.
+		By extension, encountering multiple players early on in FFA.
+	Expanding away from a player you know (or expect) is engaging you.
+		- Need to keep your army (and your army producers, tiles and cities) between you and the opponent where possible.
+	Allowing an enemy onto your territory and letting them see tiles they haven't previously discovered.
+		- Need to stop enemy attacks as early as possible
+	Leaving enemy tiles near your general, especially if they are on a potential optimal attack patch from an enemy location.
+	Taking a neutral city and immediately losing control of it.
+		By extension, taking a city when you know enemy has been gathering but hasn't launched an attack yet.
+		- Should only take cities you can keep, and if safe gather hard to them if an enemy knows they are there.
+		- Should take a city after you know an enemy has just expended some army, eg onto your territory, and run out of gathered army.
+			- This is good timing to take a city because you know the enemy can't immediately all in on your general or on your new city.
+	Allowing for alternate attack paths through the fog from the enemy location.
+		- You should at least have tendrils off from your general in enough directions to provide vision to warn in time of incoming attacks through alternate pathways.
+
+
+Things that should trigger you to be aggressive:
+	Opponent has significantly more tiles than you but less standing army
+		- They may be overexpanding and opening themselves up to an attack on their general.
+	Similarly, opponent takes a city and has less standing army than you.
+		- Three options: (distance to enemy, )
+			Attack for King
+			Attack and take and hold their city
+			Take a city of your own
+	[12:46 AM] Ethryn: i think the larger land advantage the opponent has, the earlier you attack
+	[12:46 AM] Ethryn: at least that's how i do things
+
+Things that should trigger you to take cities
+
+First 25:
+	Expand optimally. 
+	(FFA) Expand towards edges, try to expand in only one direction to avoid multiple player encounters.
+	If a player is encountered:
+		there is almost 0 chance of them hurting you. However continue expanding near them, but on empty tiles.
+		

@@ -1,0 +1,240 @@
+BE WELL PHARMACY - 
+1973 Foothill pkway, suite 106 Corona
+951-407-9355
+
+Generals
+human, (sponsor) user id for EklipZ
+
+
+
+GENERAL ROUND PLANNING:
+Figure out the necessary core-gather-tiles for safety: what do we definitely need to gather.
+	Exclude those from expansion planning, city capturing, etc.
+	Flow-expand with the rest of army?
+	
+
+
+
+THEORY:
+pushing 2's is more efficient than gather-attack during 3rd cycle, almost certainly for sure. Attacking with army gathered from 2's is bad because if you push over enemy territory that they didn't expand, it costs you two-2-gather-moves for every enemy tile you take
+
+
+
+
+TODO
+during 50-100, just straight up run a gather to ALL undiscovered tiles within like, 6 tiles of the predicted enemy general location, see what behavior results...?
+
+kill threat should have two modes, one that prioritizes killing enemy tiles on the way, and one that prioritizes max army intercept (cur behav).
+kill threat needs to close distance to target as much as possible, space-wise, on every move. Right now it likes to run in parallel as long as possible for some reason.
+	Needs to understand that it can intercept one move behind the army on longer threat paths where that is safe.
+
+Write an adversarial army scrim tester, at least, if not a full test harness. Can serve as the basis for threat defense.
+
+During expansion, move-half when multiple expansion routes from current tile that are between self and enemy. Prioritize tiles equadistant from both generals near end of cycle.
+During expansion ^ and run away from enemy army.
+	^ take neutral tiles on way TOWARDS enemy territory, take enemy tiles while backing out. EG at start of game during 25-50 or 50-75, attack neutrals next to enemy path until path ends, then curve back onto enemy 1's and take them all the way back towards your gen.
+
+Figure out defensive cities as cities closer to general than half the distance to predicted enemy general, use those as launch points instead.
+Try variation of gather where the gather begins with a single max value target path to the launch path, but then use an MST gather from there to gather to that path. 
+	intelligently prune that until it reaches the point where it is some sort of full local gather around that block (like, don't gather from places that are closer to the other side of the gather path or whatever). Iterate if necessary with more additions with this method.
+
+LOSING BECAUSE
+Not gathering outer tiles (in later game? lots of 8/9s floating around edges when dies).
+Taking cities in enemy vision or too close to enemy and then not holding them.
+Not holding cities (friendly or enemy). should maintain a city contestation list of recently / in danger cities and gather to them.
+Attacking too deep in enemy territory early?
+
+
+
+
+
+TODO:
+Tile value priority matrix to board analysis.
+
+If implementing anti-human database, monitor city timings, plan attacks to interrupt or hit immediately after to cap
+
+MCTS:
+	Engine should not calculate the general distance win until the end of the scrim. 
+		Must give tiles a chance to catch the enemy if a few spaces apart.
+		So we should be able to expand nodes that would fail the distance check instead of considering them 'trial.over()' however we should still VALUE it as a loss until we find a save below and backpropogate that up or something?
+	Stop individually MCTSing things and do one big MCTS at the end of every turn, allowing us to use consistent amounts of time per move.
+		Provide move hints to MCTS.
+			Switch move selection to return a model of considered paths, must-do constraints (like, make this defense move unless MCTS determines a better move that prevents a loss).
+			Have MCTS pre-expand (both in trial bias move selection and in node selection itself) the well known paths so that it starts with something exploitable to explore from.
+		As we have a larger branching factor in MCTS, implement 'killer move' logic to globally track good moves during the search and possibly include them in trial bias or just as a slight bias during exploration node expansion. 
+			Can just maintain a List(player to dictionary(Move to visits/score)) and slightly factor that into exploit if army on one of those move sources?
+		Can also use this longer end-of-turn calculation time post-move to pre-calculate other stuff with MCTS if we want.
+		MCTS does not need to be zero sum during FFA, even if we only include two players. Tile differential concept would need to change, though.
+
+STRATEGY:
+	When losing on tiles, try to plan runbys. 
+	
+	When losing on tiles, never back up for defense, always continue the attack. Defense pullbacks should calculate a 'chance of dying' based on the information the opp knows.
+		Fuck defense when losing, it just gets you more behind. Go all out, enemy_has_kill_threat=False MCTS dance your way in, fully disable army intercept, etc.
+			* Blindly doing this when losing on tiles reduces winrate, need to be more nuanced with the 'no go backwards' rules.
+			* Consider applying no-go-backwards even when winning...?
+
+
+EXPANSION v2
+	Build 'gather' tree INTO enemy territory (and/or cleaning up enemy tiles), so we have a plan on what to DO with gathered army.
+	Put a cap on the amount of army we want to send down those routes so we don't gather all our army to random places.
+	Have the main attack path(s) (@gen, @enemy cities) be an 'infinite' army sink to allow infinite army amounts towards it.
+	THEN tweak existing gather to gather towards those target points.
+	Have both expansion-plan and gather-plan be pruned simultaneously until we find the 'best' balance of time spent gathering vs expected tiles captured. Somehow factor in time for defending enemy pushes (may need to recalculate this every turn...? Yikes)
+	Expansion phase needs to maximize for amount of army per turn that reaches the border of our territory vs enemy territory, probably? Might be a good heuristic to use.
+
+
+GENERAL-PREDICTION:
+   Stop doing a BFS of emergence values out from the emergence tile, and instead just store the emergence tiles. Weight emergences by the number of unknown cities the player had at that time.
+         Do prediction by building a minimum spanning tree that includes just all of the emergence tiles.
+         The closest valid general location to the center of the minimum spanning tree is the prediction.
+         Rank potential tiles by their proximity to parts of the spanning tree..?
+	In FFA, after a player capture, we end up hunting all the wrong places for the capturer even though we saw them ahead of them capping more stuff.
+
+	We need to maintain an early game prediction state that stops getting updated after a capture or a few cycles, and heavily weight that for exploration.
+		Kind of done, ish? We heavily weight early discoveries over late discoveries.
+	Likewise when a capture happens and we see tiles from capturer before and after, we should dual-BFS out from the captured player and mark all tiles encountered on the way to the capturer as 'not capturer general possible'
+		only applies when we see a significant portion of the capturers tiles early on. If we see a few random tiles and then they capture another player, we shouldn't nuke the whole area around the captured player.
+	Eliminate general spawn locations based on if they got 25-start. We should be able to nuke the ends of all caves.
+	During first 25, record the start timing that the enemy player used.
+		Use that if we encounter their army in the first 25 to limit their location. 
+		If they did an 11 start, and we saw a 4 tile, then we know their general is 6 tiles away from that 4 tile in the fog.
+			Put those tiles as very high emergence values.
+	General prediction should result in a gradient of likelihood values that can be fed as win-percentage likelihood for an exploration path that factors in visible enemy intercepts + probable enemy fog amount.
+	Exploration attacks should change to maximize the sum of the gradient values explored, rather than trot back and forth between the highest emergence value.
+
+
+FIRST-25:
+	First and second paths should not be in same general target.
+	General prediction should include a secondary location weighted to be far from the first, 
+		and the two tendrils should go towards primary prediction and secondary prediction, respectively.
+
+
+STATEFUL-TIMING-PLANS:
+	Things like all-in-gather-at-target plans need to maintain remaining-turns state so that they don't drop leaves when interrupted.
+	Useful in City Contest gathering, all in at general, should probably even be used limited in the main timing launch gathers.
+
+
+MAX-GATHER-VALUE-PER-TURN-PRUNE:
+Need an alt prune algo that instead of pruning to specific army or turns, prunes to the maximal amount of army gathered per turn.
+Use this in:
+	All-in-gather-at-opposing-player, to avoid spending too many turns gathering stupid tiles, or not enough turns to gather main force after being interrupted.
+		Instead can just gather for max of (timing cycle, gen distances or something) and then prune it down to the highest value content each time.
+		Add tests that assert it doesn't cycle adding growing cities back into the plan forever etc and reaches the target.
+	City Contestation gathers. Right now bot does a good job contesting cities with local army, but then it gets less effective as it requires more turns to get army to the city to contest at which point it crosses a threshold where it spends lots of turns moving small numbers of army and could instead spend 10 extra turns gathering 200 extra army to hold the city instead.
+	Instead of pruning the gather to kill army, gather more turns and prune to maximal value per turn after an initial capture.
+
+
+ENEMY-STATE-PREDICTION:
+	Maintain a running balance of predicted enemy gathered army.
+		Maintain a phantom 'general' tile counter for the player that we remove army from when army emerges during the game, and increment based on how far into the fog we think it is before the emergence.
+			Integrate this predicted general army into kill-hunting-offense so we can go super hunty when we think the enemy general is nearby and undefended.
+		Calculate predicted largest tile based on amount of cities and amount of army that isn't visible on number of tiles that aren't visible.
+		Reduce this by army emergences, increment it while the player is making moves that do not cap tiles and are not visible to us. Tweak until reasonably accurately predicting the armies that emerge from the fog at various game states.
+		In FFA, this should probably take into account whether we think the player is aggressive towards us.
+		We can use the mutual drops in army from two fog players anihilating to determine which players are attacking each other, and use that to target vulnerable players who we predict their general is weak. 
+			When they are anihilating large armies, they are clearly using army off their gen etc.
+
+	Extend the fog-city-prediction to outright predict fog cities as soon as they cap a city.
+		Prefer forward cities.
+		Unexplained army emergencies should shift city prediction accordingly, this should not fail the existing fog-city-wall-break tests.
+
+
+CITY-CONTESTATION:
+	Track cities that are flipping sides or in danger of flipping sides 
+		Just capped sketchy city close to the main path and 1/3rd of the way to enemy general? 
+			Consider it a flipped city and 'contest it' so long as we maintain reasonable econ advantage.
+	Only take neutral cities with out of play army, do not use army from the main play area shortest paths. 
+		Never gather army AWAY from the enemy towards the city unless it is backwards behind our general.
+
+
+PERSISTENT STRATEGY
+	Make a strategy interface,
+		Prioritize army conservation vs capture 
+			(eg when all in exploring a losing game for short term kill, 
+				dont want to waste your army capping their large tiles. During normal exploration, capture as many enemy tiles as possible).
+		Whether to play econ game or not.
+		Whether to play city constestation or not.
+		Whether to explore undiscovered or turtle cities in FFA.
+		Which players to consider temporary allies in FFA.
+	create a variety of implementations
+	 	FFA pacifism modeling
+	 	1v1 all in
+	 	1v1 econ defense
+	 	FFA predatory hunting
+	 	etc
+
+
+GATHER-OUT-OF-PLAY-FORCING:
+	look at the GatherAnalyzer output and notice that out-of-play-area-tiles have high 'gather-locality' value. 
+	Set some threshold where we forcibly add a line from the main path out to that gather area (as a threat path...?)
+	gather as normal to the adjusted start tiles, so the gather can clearly see that it can gather from the out-of-play-tiles cheaply. 
+
+
+GATHER-ALTERNATE-VALUE-HEURISTICS:
+	Possibly tweak gather impls so that it can factor in other data to its maximization algorithm, 
+	deprioritizing tiles already near enemy general / shortest path while prioritizing the ones out of play.
+	Would go hand in hand with EXPANSION v2 which already needs modifications to the gather algos.
+
+
+GATHER-GRAPH-SNIP:
+	(Ref test_gather__adversarial_far_tiles_to_gather test)
+	I have an idea for how I can get my current iterative method to adapt but I need to add a whole new phase to the gather building where 
+	* I basically 'snip' the lowest value mid-section of the tree (so in this case, i'd snip the row of 1's in the right side of that gather), 
+	* then run my normal prune, where I prune all the lowest value leaves of the tree, and 
+	* THEN try to rejoin the snipped tree together. 
+		* Which, should find that greedy-bridge across the bottom. 
+	* Then running another iteration of that in theory would snip the left side 1's, prune off the 2's, 
+	* then find a bridge back to the start again IN THEORY finding that full-2's bridge near the middle
+		* viola, finds the optimal 150 gather.
+
+
+
+
+debug drawing atm
+
+GREEN TARGET: Threat save tile
+PURPLE TARGET: General defense threat save tile(...?)
+RED: Trying to kill danger tile, or targeting city
+
+PURPLE: max undiscovered area alone - purple
+	bottom right grid text = undiscovered area value
+		light x's around this undiscovered areas tiles that were included
+
+GOLD: general evaluation just based on undiscovered from enemy territory into fog, pre-emergence-army-calculations
+	bottom left grid text = ^ value
+
+BLUE: general evaluation ACTUAL approximation
+	mid right text = ^ value
+
+
+
+	text
+
+
+|                     |
+|                     |
+|                     |
+|                     |
+|           ACTUAL pri|
+|           emergence |
+|undis+fog  undisc exp|
+
+
+
+
+human server, EklipZ user_id = rkmslNatx
+
+bot server, EklipZ user_id = EklipZ
+
+
+
+
+
+
+HOW MANY VERTICES IN A GRID??
+v = 2(W*H) - W - H
+(all from top left to bot right, each node adds 2 new vertices except the right and bottom edges, which all add 1 except the bottom right corner, which adds 0).
+
+largest map is maybe 30x30 = 1740
+dijkstras would be v^2 so 3.02mil

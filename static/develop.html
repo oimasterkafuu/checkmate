@@ -221,6 +221,13 @@ BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token p
             >
             <code>bot-template/strategy-bot</code>
           </a>
+          ，该模板现在使用 Python 启动（已适配本站 Socket.IO 协议）。
+          <pre class="code-snippet"><code># 运行示例
+cd bot-template/strategy-bot
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token BOT_NO_UI=1 python3 index.py</code></pre>
           <div class="dev-strong-checklist">
             <b>主仓库不接受机器人 PR，除非是对 <code>strategy-bot</code> 的改动，简洁其代码，增加其教育意义。</b>
           </div>

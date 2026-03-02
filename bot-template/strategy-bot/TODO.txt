@@ -1,0 +1,78 @@
+FIX FFA COLORS OMG
+
+IN HIGH CITY COUNT / LARGE MAP VISION SCENARIOS 
+	BOT SHOULD ____NOT____ KEEP ATTACKING FROM ITS KING, IT SHOULD INSTEAD GATHER TO SOME GREATEST ATTACK PATH AND LAUNCH FROM THERE
+	STOP GIVING AWAY YOUR KING POSITION AND NOT USING THE REST OF THE MAP ARMY YOU POS
+	IF WINNING BY DECENT MARGIN, BOT SHOULD KEEP ARMY ON ITS KING AND REFUSE TO ATTACK FROM THE KING WITHOUT MOVE-HALF
+
+Fix bot to not send full-attacks during last few turns before army bonus, esp early game. Bot should spend the last few turns expanding, always, not attacking.
+
+Fix. Fucking. Gathers. Knapsack greedy?
+*Deprioritize Cities in gathers
+	Also fix gathers to not gather obnoxiously small amounts of army
+Gathers with Knapsack to optimize gathering the most army in X turns
+	First 25: find MST gather-type-thing that optimizes expanding (both the gathering to borders, and the expansion paths over neutral tiles)
+		ehhhh current first 25 is ok enough
+
+BFS from enemy king approx / location to find nearest tile to bots king that enemy army can reach without bot getting vision of inc army
+	That way we can attack at this tile to increase defense time, and refuse to move large armies further than this tiles distance away
+
+When killpath against our king goes through non-visible tiles, make sure our defense path is set at least as long as the number of non-visible tiles that killpath goes through (so that we don't drop defense moves when attacking army goes out of sight)
+
+When losing on tiles, gather to target enemy tiles along with gather-path like old bot did
+
+Consider more than one threat per turn (enemy has 29 army and a 100 army behind that one, if the 29 army is a threat the real 129 threat is ignored)
+
+Stop undiscovered-kill attacking target enemies who are bigger than bot in FFA game - Just gets bot killed
+
+Fix path turn stuff (trying to re-move tiles that are already moved, re-moving move-halfs, etc)
+
+* SWITCH TO BFS FOR DEFENSE GATHER, FUCK THIS HEURISTIC SHIT
+	* Gather to general AND threat tile that is 1 away from general. 
+	* (Determine if multiple paths to gen exist?)
+
+
+Do - Until - Then ~~~
+	Class based? Early terminations?
+
+	gather at found general until dead?
+
+Tile restrictions + tile restriction tracker class
+	tile cannot move in x direction, tile can only move half in x direction, etc
+
+
+*Find-Path between two tiles (to gather to)
+	Find-path containing cities, or closest to cities?
+		* containing cities + enemy tiles done
+	*Stop gathering directly to general, instead gather between general and target general / general approx
+
+
+Dynamic Programming gathers for defense, stop re-evaluating gathers per-turn (maybe?)
+
+Remove general army restrictions in leu of keeping enough army near general
+	breadth gather (will kill work? What did I mean by this oh no)
+	* Removed general restrictions lel, no 'near general' calculations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
