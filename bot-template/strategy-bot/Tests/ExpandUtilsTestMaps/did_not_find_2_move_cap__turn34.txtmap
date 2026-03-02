@@ -1,0 +1,27 @@
+|    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+     M    M                        M         M    M         M
+M         M         M                                                      M    M
+                                   M                   M                   M    M
+                              M    M         M                                  M    M
+M                             M    M                   M    M              M    M    M
+
+          M                                                      M
+M                   M                                            M    M    M    M
+                    C49  b1             M         M         M         M
+     M              C40  a2   b1                            M                        M
+                         a1   M    M         M                             M    M
+               a1   a1   a1        M              M                        M
+     M    a1   a1        M                             M                        M
+          a1   C44            M    M         M    M
+aG6  a1   a1   M                        M    M                                       M
+                              M                                  M    M
+                              M                        M                   M
+M              M                   M                        M    M         M
+|    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+targetPlayerExpectedGeneralLocation=9,6
+player_index=0
+bot_target_player=1
+aScore=17
+aTiles=11
+bScore=17
+bTiles=10

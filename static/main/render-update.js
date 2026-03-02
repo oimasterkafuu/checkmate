@@ -13,7 +13,12 @@ function render() {
   for (var i = 0; i < route.length; i++) {
     have_route[route[i].d][route[i].x][route[i].y] = true;
   }
-  var ownSelected = selx >= 0 && sely >= 0 && player > 0 && grid_type[selx][sely] < 200 && grid_type[selx][sely] % 50 == player;
+  var ownSelected =
+    selx >= 0 &&
+    sely >= 0 &&
+    player > 0 &&
+    grid_type[selx][sely] < 200 &&
+    grid_type[selx][sely] % 50 == player;
   var canAttackFromSelected = selx >= 0 && sely >= 0 && (ownSelected || route.length > 0);
   for (var i = 0; i < n; i++) {
     for (var j = 0; j < m; j++) {
@@ -58,7 +63,11 @@ function render() {
           cls += ' selected selected50';
           txt = '50%';
         }
-      } else if (canAttackFromSelected && Math.abs(i - selx) + Math.abs(j - sely) == 1 && grid_type[i][j] != 201) {
+      } else if (
+        canAttackFromSelected &&
+        Math.abs(i - selx) + Math.abs(j - sely) == 1 &&
+        grid_type[i][j] != 201
+      ) {
         cls += ' attackable';
       }
       if (txt.length > 0 && scale == 1) txt = '<div class="txt">' + txt + '</div>';
@@ -191,7 +200,9 @@ function update(data) {
       lostText = '<span>你已投降。</span>';
     } else {
       lostText =
-        '<span>你被 <span style="font-family: Quicksand-Bold, HYMaQiDuo-Bold;">' + htmlescape(killerName) + '</span> 击败了。</span>';
+        '<span>你被 <span style="font-family: Quicksand-Bold, HYMaQiDuo-Bold;">' +
+        htmlescape(killerName) +
+        '</span> 击败了。</span>';
     }
     $($('#status-alert').children()[0].children[0]).html('游戏结束');
     $($('#status-alert').children()[0].children[1]).html(lostText);

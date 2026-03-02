@@ -1,6 +1,6 @@
 {
   "name": "checkmate",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "Checkmate!!",
   "main": "dist/server.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"AGENTS.md\""
+    "format": "prettier --write --ignore-unknown \"src/**/*.ts\" \"static/**\" \"README.md\" \"AGENTS.md\""
   },
   "repository": {
     "type": "git",

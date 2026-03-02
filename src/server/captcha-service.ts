@@ -184,9 +184,7 @@ class CaptchaService {
     const glyphHeight = 7 * pixelSize;
     const remainingWidth = Math.max(0, usableWidth - codeLength * glyphWidth);
     const gap =
-      codeLength > 1
-        ? Math.max(minGap, Math.min(maxGap, Math.floor(remainingWidth / (codeLength - 1))))
-        : 0;
+      codeLength > 1 ? Math.max(minGap, Math.min(maxGap, Math.floor(remainingWidth / (codeLength - 1)))) : 0;
     const totalWidth = code.length * glyphWidth + (code.length - 1) * gap;
     const extraX = Math.max(0, usableWidth - totalWidth);
     const maxStartX = Math.max(layoutPaddingX, this.width - totalWidth - layoutPaddingX);
@@ -315,14 +313,14 @@ class CaptchaService {
       const opacity = randomFloat(0.62, 0.99).toFixed(2);
       const fill = randomInkColor();
       rects.push(
-        `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${radius}" ry="${radius}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`
+        `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${radius}" ry="${radius}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`,
       );
       if (randomFloat(0, 1) < 0.16) {
         const dotX = x + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
         const dotY = y + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
         const dotR = randomFloat(0.32, 0.88).toFixed(2);
         rects.push(
-          `<circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${dotR}" fill="${randomInkColor()}" fill-opacity="${randomFloat(0.48, 0.92).toFixed(2)}"/>`
+          `<circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${dotR}" fill="${randomInkColor()}" fill-opacity="${randomFloat(0.48, 0.92).toFixed(2)}"/>`,
         );
       }
     }

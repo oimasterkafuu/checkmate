@@ -1,0 +1,20 @@
+MAIN TODO:
+Fix MST gather, either stop gathering shit leaves somehow or just prune all shit leaves and then path-gather back up to desired.
+
+Expansion continuation. (Leftover army gets re-expanded.)
+	general / city gets re-added back in with smaller army.
+	Splitting army as option?
+Expansion should switch search order from largest tiles first to closest tiles to enemy territory first.
+	- If not for full expansion, then at least for last 10-15 turns of it or so...
+Expansion should prioritize enemy tiles further from enemy army sources first (general cities), as they are least likely to be retaken. Balance this with defense. (Same with enemy tiles on quickexpand)
+
+Switch path targeting from breadth_first_kill to dynamic_bfs_max (like greedy gather). Stop using tiny armies instead of large armies 1 or 2 moves longer to kill these....
+stop attacking running away armies before army bonus. Kill stuff instead and let them run.
+
+
+
+Combine gather + expansion at the same time (so that we don't gather already good expansion tiles away from good spots etc)
+	interlace expansion with gather at some points, particularly where it reveals fog and doesn't use cities?
+
+When winning on army but not economy, use move-halfs to leave some army behind while continuing to take tiles and attack
+

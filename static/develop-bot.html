@@ -1,0 +1,488 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <link rel="stylesheet" href="/main.css" />
+    <title>Checkmate!! - 机器人开发协议</title>
+    <style>
+      #app {
+        max-width: 1040px;
+        margin: 84px auto 36px;
+        padding: 0 12px;
+        text-align: left;
+      }
+      .dev-title {
+        margin: 0 0 10px 0;
+        font-size: 34px;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .dev-subtitle {
+        margin: 0 0 16px 0;
+        line-height: 1.7;
+        opacity: 0.9;
+      }
+      .dev-panel {
+        margin: 0 0 14px 0;
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.22);
+        box-shadow: 2px 2px teal;
+      }
+      .dev-panel h2,
+      .dev-panel h3 {
+        margin: 0 0 10px 0;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .dev-panel h2 {
+        font-size: 20px;
+      }
+      .dev-panel h3 {
+        margin-top: 14px;
+        font-size: 16px;
+      }
+      .dev-panel p {
+        margin: 0;
+        line-height: 1.7;
+      }
+      .dev-panel p + p {
+        margin-top: 8px;
+      }
+      .dev-panel ul,
+      .dev-panel ol {
+        margin: 8px 0 0 20px;
+        line-height: 1.7;
+      }
+      .dev-link {
+        color: teal;
+        word-break: break-all;
+      }
+      .protocol-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        margin-top: 8px;
+      }
+      .protocol-table th,
+      .protocol-table td {
+        border-top: 1px solid rgba(255, 255, 255, 0.16);
+        text-align: left;
+        vertical-align: top;
+        padding: 10px 8px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .protocol-table tr:first-child th,
+      .protocol-table tr:first-child td {
+        border-top: none;
+      }
+      .protocol-table th {
+        width: 220px;
+        color: #d3f3f1;
+        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      }
+      .code-snippet {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.25);
+        overflow-x: auto;
+        font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+        line-height: 1.5;
+        font-size: 13px;
+        white-space: pre;
+      }
+      .tips {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(0, 128, 128, 0.5);
+        background: rgba(0, 128, 128, 0.15);
+      }
+      .nav-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+
+  <body style="overflow: auto; height: auto">
+    <div style="position: fixed; top: 12px; left: 12px; z-index: 20">
+      <button id="back-develop-btn" class="small">返回网站开发页</button>
+    </div>
+    <div style="position: fixed; top: 12px; right: 12px; z-index: 20">
+      <span id="account-name" style="margin-right: 8px; font-family: Quicksand-Bold"></span>
+    </div>
+
+    <div id="app">
+      <h1 class="dev-title">Checkmate!! 机器人开发协议</h1>
+      <p class="dev-subtitle">Checkmate!! 欢迎机器人开发。我们不仅提供文档，还提供两个示例。</p>
+
+      <section class="dev-panel">
+        <h2>1. 连接与鉴权</h2>
+        <table class="protocol-table">
+          <tr>
+            <th>Socket 地址</th>
+            <td>与站点同源，Socket.IO 默认路径 <code>/socket.io/</code>。</td>
+          </tr>
+          <tr>
+            <th>transport</th>
+            <td>服务端支持 <code>websocket</code> 与 <code>polling</code>。</td>
+          </tr>
+          <tr>
+            <th>鉴权字段</th>
+            <td>
+              握手优先读取 <code>auth.token</code>（JWT），否则回退读取 Cookie 里的 <code>auth_token</code>。
+            </td>
+          </tr>
+          <tr>
+            <th>鉴权失败</th>
+            <td>连接会被拒绝（客户端会收到 <code>connect_error</code>）。</td>
+          </tr>
+          <tr>
+            <th>身份标识</th>
+            <td>
+              连接后服务器会下发 <code>set_id</code>（字符串），值为当前 socket id 的 MD5。后续在
+              <code>init_map.player_ids</code> 与 <code>update.kills</code> 中都用这个 ID。
+            </td>
+          </tr>
+        </table>
+        <pre class="code-snippet"><code>// JS 连接示例
+const socket = io(BOT_SERVER, {
+  transports: ['websocket', 'polling'],
+  auth: { token: process.env.BOT_TOKEN }
+});</code></pre>
+      </section>
+
+      <section class="dev-panel">
+        <h2>2. 房间阶段协议（开局前）</h2>
+
+        <h3>2.1 Client → Server</h3>
+        <table class="protocol-table">
+          <tr>
+            <th><code>join_game_room</code></th>
+            <td>
+              <code>{ room: string }</code>。房间号服务端限制长度 <code>1..15</code>；建议只使用
+              <code>[0-9A-Za-z_-]</code>。
+            </td>
+          </tr>
+          <tr>
+            <th><code>change_team</code></th>
+            <td>
+              <code>{ team: number }</code>。<code>0</code> 表示观战；<code>1..16</code>
+              表示参赛/队伍号。非组队模式下，非 0 会被规整为参赛。
+            </td>
+          </tr>
+          <tr>
+            <th><code>change_ready</code></th>
+            <td><code>{ ready: boolean }</code>。仅参赛者有效，且仅在房间未开局时生效。</td>
+          </tr>
+          <tr>
+            <th><code>change_game_conf</code></th>
+            <td>
+              可选字段 patch：<code>speed</code>（0.5~4）、<code>allow_team</code>（bool）、
+              <code>map_mode</code>（<code>random|maze|archipelago</code>）、<code>map_token</code>（最长
+              32）。 仅房主可改。
+            </td>
+          </tr>
+        </table>
+
+        <h3>2.2 Server → Client</h3>
+        <table class="protocol-table">
+          <tr>
+            <th><code>room_update</code></th>
+            <td>
+              房间状态快照：
+              <code>{ speed, allow_team, map_token, map_mode, in_game, players, ready, need }</code>。
+            </td>
+          </tr>
+          <tr>
+            <th><code>room_update.players[]</code></th>
+            <td>
+              每项为 <code>{ sid, uid, team, ready }</code>： <code>sid</code> 为该玩家 socket id 的
+              MD5；<code>uid</code> 为用户名；<code>team</code> 为 0(观战) 或队伍号；<code>ready</code>
+              为准备状态。
+            </td>
+          </tr>
+          <tr>
+            <th><code>ready</code> / <code>need</code></th>
+            <td>当前已准备人数 / 开局所需人数。<code>need &lt;= 1</code> 时不会开局。</td>
+          </tr>
+          <tr>
+            <th><code>starting</code></th>
+            <td><code>{}</code>。满足开局条件后广播，表示即将进入对局。</td>
+          </tr>
+          <tr>
+            <th><code>chat_message</code></th>
+            <td>
+              聊天消息：<code>{ sender, color, text, team }</code>。<code>color=0</code> 时通常是系统消息。
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="dev-panel">
+        <h2>3. 对局阶段协议（开局后）</h2>
+
+        <h3>3.1 开局事件</h3>
+        <table class="protocol-table">
+          <tr>
+            <th><code>init_map</code></th>
+            <td>
+              <code>{ n, m, player_ids, general }</code>。 <code>n</code>/<code>m</code> 为行列；<code
+                >player_ids</code
+              >
+              是所有玩家 MD5 SID； <code>general=[x,y]</code> 是你自己的主城坐标。观战者一般为
+              <code>[-1,-1]</code>。
+            </td>
+          </tr>
+          <tr>
+            <th>玩家编号映射</th>
+            <td>
+              令 <code>self_id = set_id</code>，在 <code>player_ids</code> 中查找位置： 下标从 0
+              开始，对应游戏 owner id = <code>index + 1</code>。
+            </td>
+          </tr>
+        </table>
+
+        <h3>3.2 回合事件 <code>update</code></h3>
+        <table class="protocol-table">
+          <tr>
+            <th>整体结构</th>
+            <td>
+              <code
+                >{ grid_type, army_cnt, lst_move, leaderboard, turn, kills, surrender_progress, game_end,
+                is_diff, replay? }</code
+              >
+            </td>
+          </tr>
+          <tr>
+            <th><code>turn</code></th>
+            <td>半回合计数（前端显示为 <code>Math.floor(turn/2)</code>）。速度 1x 时 tick 约 500ms。</td>
+          </tr>
+          <tr>
+            <th><code>is_diff = false</code></th>
+            <td>
+              <code>grid_type</code> 与 <code>army_cnt</code> 都是长度
+              <code>n*m</code> 的全量数组，按行优先展开。
+            </td>
+          </tr>
+          <tr>
+            <th><code>is_diff = true</code></th>
+            <td>
+              <code>grid_type</code>/<code>army_cnt</code> 均为 index-value 对：
+              <code>[idx0, val0, idx1, val1, ...]</code>。
+              <code>idx = x * m + y</code>（行优先）。机器人需要在本地缓存全图并增量合并。
+            </td>
+          </tr>
+          <tr>
+            <th><code>lst_move</code></th>
+            <td>
+              <code>{ x, y, dx, dy, half }</code>。表示服务器已执行的最近行动（用于客户端队列确认）。
+              无动作时为 <code>{-1,-1,-1,-1,false}</code>。
+            </td>
+          </tr>
+          <tr>
+            <th><code>leaderboard[]</code></th>
+            <td>
+              每项结构：<code>{ team, uid, army, land, class_, dead, id }</code>。 <code>class_</code> 可为
+              <code>''</code>、<code>'afk'</code>、<code>'dead'</code>。
+            </td>
+          </tr>
+          <tr>
+            <th><code>kills</code></th>
+            <td>
+              <code>Record&lt;sid_md5, killer_name&gt;</code>。当你被击败时，键为你的 <code>set_id</code>。
+            </td>
+          </tr>
+          <tr>
+            <th><code>surrender_progress</code></th>
+            <td>
+              <code>Record&lt;owner_id, ratio&gt;</code>，ratio 范围 <code>0..1</code>，用于渲染投降衰减效果。
+            </td>
+          </tr>
+          <tr>
+            <th><code>game_end</code></th>
+            <td><code>true</code> 表示该帧为终局帧。</td>
+          </tr>
+          <tr>
+            <th><code>replay</code></th>
+            <td>可选字符串，仅在终局附近出现，表示回放 ID。</td>
+          </tr>
+        </table>
+
+        <h3>3.3 Tile 编码（<code>grid_type</code>）</h3>
+        <table class="protocol-table">
+          <tr>
+            <th><code>0..49</code></th>
+            <td>普通地块，owner id = code（0 表示中立空地）。</td>
+          </tr>
+          <tr>
+            <th><code>50..99</code></th>
+            <td>城市，owner id = code - 50；<code>50</code> 为中立城市。</td>
+          </tr>
+          <tr>
+            <th><code>100..149</code></th>
+            <td>将军（主城），owner id = code - 100。</td>
+          </tr>
+          <tr>
+            <th><code>150..199</code></th>
+            <td>沼泽，owner id = code - 150。</td>
+          </tr>
+          <tr>
+            <th><code>200</code></th>
+            <td>可见空地（中立）。</td>
+          </tr>
+          <tr>
+            <th><code>201</code></th>
+            <td>可见山脉（不可通行）。</td>
+          </tr>
+          <tr>
+            <th><code>202</code></th>
+            <td>战争迷雾中的未知地块。</td>
+          </tr>
+          <tr>
+            <th><code>203</code></th>
+            <td>战争迷雾中的障碍/特殊地块（如山脉或城市类障碍，具体类型被隐藏）。</td>
+          </tr>
+          <tr>
+            <th><code>204</code></th>
+            <td>可见中立沼泽。</td>
+          </tr>
+          <tr>
+            <th><code>205</code></th>
+            <td>迷雾中的沼泽。</td>
+          </tr>
+        </table>
+        <p style="margin-top: 8px">
+          <code>army_cnt</code> 与 <code>grid_type</code> 同维度。迷雾格兵力通常为 0。
+        </p>
+      </section>
+
+      <section class="dev-panel">
+        <h2>4. 对局内可发送操作</h2>
+        <table class="protocol-table">
+          <tr>
+            <th><code>attack</code></th>
+            <td>
+              <code>{ x, y, dx, dy, half }</code>。坐标均为 <code>[row, col]</code>。
+              <code>(x,y)</code> 是起点，<code>(dx,dy)</code> 是目标，要求四邻接；<code>half=true</code>
+              表示 50% 出兵。
+            </td>
+          </tr>
+          <tr>
+            <th><code>clear_queue</code></th>
+            <td>清空当前玩家待执行操作队列。</td>
+          </tr>
+          <tr>
+            <th><code>pop_queue</code></th>
+            <td>删除队尾一条待执行操作。</td>
+          </tr>
+          <tr>
+            <th><code>send_message</code></th>
+            <td><code>{ text, team }</code>。team=true 表示队伍频道。</td>
+          </tr>
+          <tr>
+            <th><code>surrender</code></th>
+            <td>投降并转观战。</td>
+          </tr>
+          <tr>
+            <th><code>return_room</code> / <code>leave</code></th>
+            <td>退出对局返回房间。服务端会回 <code>left</code>。</td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="dev-panel">
+        <h2>5. 增量帧合并示例</h2>
+        <pre class="code-snippet"><code>// 已知 n, m 和本地 fullGrid/fullArmy（长度 n*m）
+function applyUpdate(frame) {
+  if (frame.is_diff) {
+    for (let i = 0; i < frame.grid_type.length; i += 2) {
+      fullGrid[frame.grid_type[i]] = frame.grid_type[i + 1];
+    }
+    for (let i = 0; i < frame.army_cnt.length; i += 2) {
+      fullArmy[frame.army_cnt[i]] = frame.army_cnt[i + 1];
+    }
+  } else {
+    fullGrid = frame.grid_type.slice();
+    fullArmy = frame.army_cnt.slice();
+  }
+}</code></pre>
+        <div class="tips">
+          <b>提示：</b>
+          <ul>
+            <li>任何时刻都维护一份全量缓存，避免只依赖 diff 帧。</li>
+            <li>收到 <code>is_diff=false</code> 全量帧时，用它重置本地状态。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="dev-panel">
+        <h2>6. 模板与来源</h2>
+        <p>
+          简单模板：
+          <a
+            class="dev-link"
+            href="https://github.com/oimasterkafuu/checkmate/tree/main/bot-template/random-patch-bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><code>bot-template/random-patch-bot</code></a
+          >
+        </p>
+        <p>
+          策略模板（Python）：
+          <a
+            class="dev-link"
+            href="https://github.com/oimasterkafuu/checkmate/tree/main/bot-template/strategy-bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><code>bot-template/strategy-bot</code></a
+          >
+          ，策略核心来源于
+          <a
+            class="dev-link"
+            href="https://github.com/EklipZgit/generals-bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><code>EklipZgit/generals-bot</code></a
+          >
+          （也就是我们熟知的 Human.exe）。
+        </p>
+        <div class="nav-row">
+          <button id="goto-home" class="small">返回首页</button>
+          <button id="goto-web-dev" class="small inverted">返回网站开发页</button>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      async function loadUser() {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          location.href = '/login';
+          return;
+        }
+        const data = await res.json();
+        document.getElementById('account-name').textContent = data.username;
+      }
+
+      document.getElementById('back-develop-btn').addEventListener('click', function () {
+        location.href = '/develop';
+      });
+
+      document.getElementById('goto-home').addEventListener('click', function () {
+        location.href = '/';
+      });
+
+      document.getElementById('goto-web-dev').addEventListener('click', function () {
+        location.href = '/develop';
+      });
+
+      loadUser();
+    </script>
+  </body>
+</html>
