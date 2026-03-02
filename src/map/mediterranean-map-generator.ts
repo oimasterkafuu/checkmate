@@ -20,6 +20,22 @@ interface MediterraneanMapGenerationConfig extends MapGenerationConfig {
 const resolveEdgeDistance = (n: number, m: number, x: number, y: number): number =>
   Math.min(x, n - 1 - x, y, m - 1 - y);
 
+const hasAdjacentSwamp = (gridType: Grid<Tile>, n: number, m: number, x: number, y: number): boolean => {
+  if (x > 0 && gridType[x - 1][y] === 2) {
+    return true;
+  }
+  if (x + 1 < n && gridType[x + 1][y] === 2) {
+    return true;
+  }
+  if (y > 0 && gridType[x][y - 1] === 2) {
+    return true;
+  }
+  if (y + 1 < m && gridType[x][y + 1] === 2) {
+    return true;
+  }
+  return false;
+};
+
 const collectEdgeCandidates = (
   n: number,
   m: number,
@@ -176,13 +192,29 @@ const generateMediterraneanMap = (
   const st = build2D(n, m, false);
   markLargestComponent(gridType, n, m, st);
 
+  let initialCityCount = 0;
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      if (!st[i][j] || gridType[i][j] !== -1) {
+        continue;
+      }
+      initialCityCount += 1;
+      if (hasAdjacentSwamp(gridType, n, m, i, j)) {
+        gridType[i][j] = 0;
+      }
+    }
+  }
+
   const coastalCityCandidates: Array<[number, number]> = [];
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
-      if (!st[i][j] || gridType[i][j] === 1 || gridType[i][j] === -1) {
+      if (!st[i][j] || gridType[i][j] !== 0) {
         continue;
       }
       if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
+        continue;
+      }
+      if (hasAdjacentSwamp(gridType, n, m, i, j)) {
         continue;
       }
       const dx = (i - centerX) / centerRadiusX;
@@ -201,6 +233,42 @@ const generateMediterraneanMap = (
   for (let i = 0; i < coastalCityTarget; i += 1) {
     const [x, y] = coastalCityCandidates[i];
     gridType[x][y] = -1;
+  }
+
+  const targetCityCount = initialCityCount + coastalCityTarget;
+  let currentCityCount = 0;
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      if (st[i][j] && gridType[i][j] === -1) {
+        currentCityCount += 1;
+      }
+    }
+  }
+  if (currentCityCount < targetCityCount) {
+    const inlandCityCandidates: Array<[number, number]> = [];
+    for (let i = 0; i < n; i += 1) {
+      for (let j = 0; j < m; j += 1) {
+        if (!st[i][j] || gridType[i][j] !== 0) {
+          continue;
+        }
+        if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
+          continue;
+        }
+        if (hasAdjacentSwamp(gridType, n, m, i, j)) {
+          continue;
+        }
+        inlandCityCandidates.push([i, j]);
+      }
+    }
+    shuffle(inlandCityCandidates, rng);
+    for (
+      let i = 0;
+      i < inlandCityCandidates.length && currentCityCount < targetCityCount;
+      i += 1, currentCityCount += 1
+    ) {
+      const [x, y] = inlandCityCandidates[i];
+      gridType[x][y] = -1;
+    }
   }
 
   const requiredPlayers = Math.max(0, config.requiredPlayers);

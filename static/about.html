@@ -9,7 +9,7 @@
     <title>Checkmate!! - 关于</title>
     <style>
       #app {
-        max-width: 920px;
+        max-width: 1200px;
         margin: 84px auto 36px;
         padding: 0 12px;
         text-align: left;
@@ -154,26 +154,37 @@
       }
       .map-example-toolbar {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 10px;
         margin-top: 12px;
+      }
+      .map-example-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+      }
+      .map-example-control select {
+        height: 30px;
+        min-width: 110px;
+        padding: 0 8px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        background: rgba(0, 0, 0, 0.35);
+        color: #f3ffff;
+        font-family: Quicksand, HYMaQiDuo;
       }
       .map-example-status {
         font-size: 13px;
         opacity: 0.86;
       }
-      .map-example-grid {
+      .map-example-single {
         margin-top: 12px;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-      .map-example-card {
         border: 1px solid rgba(255, 255, 255, 0.16);
         background: rgba(0, 0, 0, 0.2);
         padding: 10px;
       }
-      .map-example-card h4 {
+      .map-example-single h4 {
         margin: 0;
         font-size: 16px;
         font-family: Quicksand-Bold, HYMaQiDuo-Bold;
@@ -195,6 +206,7 @@
       }
       .map-example-board {
         width: max-content;
+        min-width: 100%;
       }
       .map-example-board table {
         border-spacing: 0;
@@ -420,18 +432,37 @@
       </section>
 
       <section class="about-panel">
-        <h3>地图示例（4 人）</h3>
-        <p>下方示例由服务器实时生成，展示“标准地图”“峡谷回廊”“群岛要塞”“地中海”的地形差异。</p>
+        <h3>地图示例</h3>
+        <p>手动选择地图类型与人数后，服务器实时生成单张示例地图（不显示 seed）。</p>
         <div class="map-example-toolbar">
-          <button id="refresh-map-examples-btn" class="small">刷新示例</button>
+          <label class="map-example-control"
+            >地图类型：
+            <select id="map-example-mode">
+              <option value="random">标准地图</option>
+              <option value="maze">峡谷回廊</option>
+              <option value="archipelago">群岛要塞</option>
+              <option value="mediterranean">地中海</option>
+            </select>
+          </label>
+          <label class="map-example-control"
+            >人数：
+            <select id="map-example-players"></select>
+          </label>
+          <button id="generate-map-example-btn" class="small">生成地图</button>
           <span id="map-example-status" class="map-example-status"></span>
         </div>
-        <div id="map-example-grid" class="map-example-grid"></div>
+        <article id="map-example-single" class="map-example-single">
+          <h4 id="map-example-title">地图示例</h4>
+          <div id="map-example-meta" class="map-example-meta"></div>
+          <div class="map-example-board-wrap">
+            <div id="map-example-board" class="map-example-board"></div>
+          </div>
+        </article>
       </section>
     </div>
 
     <script>
-      let lastMapExamplesData = null;
+      let lastMapExampleData = null;
       let resizeTimer = 0;
 
       function mapModeLabel(mapMode) {
@@ -507,66 +538,64 @@
         container.innerHTML = html;
       }
 
-      function renderMapExamples(data) {
-        lastMapExamplesData = data;
-        const grid = document.getElementById('map-example-grid');
-        grid.innerHTML = '';
-        const boardItems = [];
-        for (const item of data.examples) {
-          const card = document.createElement('article');
-          card.className = 'map-example-card';
-
-          const title = document.createElement('h4');
-          title.textContent = mapModeLabel(item.map_mode);
-
-          const meta = document.createElement('div');
-          meta.className = 'map-example-meta';
-          meta.textContent = `${item.n} x ${item.m} · ${data.players} 人 · seed: ${item.map_token}`;
-
-          const boardWrap = document.createElement('div');
-          boardWrap.className = 'map-example-board-wrap';
-          const board = document.createElement('div');
-          board.className = 'map-example-board';
-          boardWrap.appendChild(board);
-
-          card.appendChild(title);
-          card.appendChild(meta);
-          card.appendChild(boardWrap);
-          grid.appendChild(card);
-          boardItems.push({ board, item });
+      function renderMapExample(data) {
+        if (!data || !data.example) {
+          return;
         }
-
-        for (const boardItem of boardItems) {
-          renderExampleBoard(boardItem.board, boardItem.item);
-        }
+        lastMapExampleData = data;
+        const example = data.example;
+        document.getElementById('map-example-title').textContent = mapModeLabel(example.map_mode);
+        document.getElementById('map-example-meta').textContent = `${example.n} x ${example.m} · ${data.players} 人`;
+        document.getElementById('map-example-mode').value = String(example.map_mode || 'random');
+        document.getElementById('map-example-players').value = String(data.players);
+        renderExampleBoard(document.getElementById('map-example-board'), example);
       }
 
       function rerenderMapExamplesForResize() {
-        if (!lastMapExamplesData) {
+        if (!lastMapExampleData || !lastMapExampleData.example) {
           return;
         }
-        const boards = document.querySelectorAll('.map-example-board');
-        if (boards.length !== lastMapExamplesData.examples.length) {
-          renderMapExamples(lastMapExamplesData);
-          return;
-        }
-        for (let i = 0; i < boards.length; i += 1) {
-          renderExampleBoard(boards[i], lastMapExamplesData.examples[i]);
-        }
+        renderExampleBoard(document.getElementById('map-example-board'), lastMapExampleData.example);
       }
 
       function setMapExampleStatus(text) {
         document.getElementById('map-example-status').textContent = text;
       }
 
-      async function loadMapExamples() {
+      function getSelectedMapMode() {
+        return String(document.getElementById('map-example-mode').value || 'random');
+      }
+
+      function getSelectedMapPlayers() {
+        const parsed = Number.parseInt(String(document.getElementById('map-example-players').value || '4'), 10);
+        if (!Number.isFinite(parsed)) {
+          return 4;
+        }
+        return Math.max(2, Math.min(16, parsed));
+      }
+
+      function initMapPlayerOptions() {
+        const select = document.getElementById('map-example-players');
+        let html = '';
+        for (let i = 2; i <= 16; i += 1) {
+          html += `<option value="${i}">${i}</option>`;
+        }
+        select.innerHTML = html;
+        select.value = '4';
+      }
+
+      async function loadMapExample() {
         setMapExampleStatus('加载中…');
-        const res = await fetch('/api/map-examples', { cache: 'no-store' });
+        const params = new URLSearchParams({
+          map_mode: getSelectedMapMode(),
+          players: String(getSelectedMapPlayers()),
+        });
+        const res = await fetch(`/api/map-examples?${params.toString()}`, { cache: 'no-store' });
         if (!res.ok) {
-          throw new Error('load map examples failed');
+          throw new Error('load map example failed');
         }
         const data = await res.json();
-        renderMapExamples(data);
+        renderMapExample(data);
         setMapExampleStatus('');
       }
 
@@ -585,9 +614,9 @@
         location.href = '/';
       });
 
-      document.getElementById('refresh-map-examples-btn').addEventListener('click', async function () {
+      document.getElementById('generate-map-example-btn').addEventListener('click', async function () {
         try {
-          await loadMapExamples();
+          await loadMapExample();
         } catch {
           setMapExampleStatus('加载失败，请稍后重试。');
         }
@@ -601,8 +630,9 @@
       async function main() {
         const authed = await loadUser();
         if (!authed) return;
+        initMapPlayerOptions();
         try {
-          await loadMapExamples();
+          await loadMapExample();
         } catch {
           setMapExampleStatus('加载失败，请稍后重试。');
         }
