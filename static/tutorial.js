@@ -44,9 +44,9 @@
       targets: [POS.playerCrown],
     },
     {
-      title: '游戏开始：皇冠兵力加速',
-      body: '你的皇冠兵力会从 1 开始。为了加速教程，我们临时快速增兵到 100。',
-      hint: '请观察兵力变化，系统会自动继续。',
+      title: '游戏开始：皇冠初始兵力',
+      body: '游戏开始时，你的皇冠初始兵力就是 100。',
+      hint: '接下来将进入操作教学。',
       targets: [POS.playerCrown],
     },
     {
@@ -57,13 +57,13 @@
     },
     {
       title: '移动与攻击',
-      body: '点击右侧相邻空地发起攻击（移动）。攻击会把除 1 之外的兵力推向目标格。',
-      hint: '目标：占领高亮空地。',
+      body: '使用键盘 W/A/S/D 或方向键移动，向右推进兵力。',
+      hint: '目标：用键盘占领高亮空地。',
       targets: [POS.firstMove],
     },
     {
       title: '继续推进兵线',
-      body: '继续把兵力向右推进到下一个目标格。',
+      body: '继续使用键盘推进到下一个目标格。',
       hint: '目标：占领高亮目标格。',
       targets: [[4, 5]],
     },
@@ -114,7 +114,6 @@
   const dom = {};
   let state = null;
   let tickTimer = 0;
-  let crownBoostTimer = 0;
 
   function createTile(terrain, owner, army) {
     return {
@@ -156,6 +155,7 @@
       didPan: false,
       didZoom: false,
       enemyDefeated: false,
+      moveMode: 1,
       panX: 0,
       panY: 0,
       zoom: 1,
@@ -195,7 +195,7 @@
       state.board[x][y] = createTile('mountain', 0, 0);
     }
 
-    state.board[POS.playerCrown[0]][POS.playerCrown[1]] = createTile('crown', PLAYER_ID, 1);
+    state.board[POS.playerCrown[0]][POS.playerCrown[1]] = createTile('crown', PLAYER_ID, 100);
 
     state.board[4][7] = createTile('city', 0, 20);
     state.board[2][9] = createTile('city', 0, 25);
@@ -405,9 +405,16 @@
       for (let y = 0; y < BOARD_COLS; y += 1) {
         const display = getDisplayCell(x, y);
         let cls = buildCellClass(display.code);
+        let txt = '';
+        let selectedHalfMode = false;
 
         if (state.selected.x === x && state.selected.y === y) {
-          cls += ' selected';
+          if (state.moveMode === 1) {
+            cls += ' selected';
+          } else {
+            cls += ' selected selected50';
+            selectedHalfMode = true;
+          }
         } else if (canIssueFromSelectedTo(x, y)) {
           cls += ' attackable';
         }
@@ -416,12 +423,14 @@
           cls += ' tutorial-target';
         }
 
-        let txt = '';
         if (display.code < 200 && (display.army > 0 || display.code === 50)) {
           txt = String(display.army);
           if (SCALE_CLASS === 1) {
             txt = '<div class="txt">' + txt + '</div>';
           }
+        }
+        if (selectedHalfMode) {
+          txt = '50%';
         }
 
         for (let d = 0; d < 4; d += 1) {
@@ -504,12 +513,13 @@
     renderHud();
   }
 
-  function addQueueCommand(fromX, fromY, toX, toY) {
+  function addQueueCommand(fromX, fromY, toX, toY, half) {
     state.queue.push({
       fromX: fromX,
       fromY: fromY,
       toX: toX,
       toY: toY,
+      half: Boolean(half),
     });
   }
 
@@ -566,7 +576,10 @@
       return false;
     }
 
-    const movingArmy = from.army - 1;
+    let movingArmy = from.army - 1;
+    if (cmd.half) {
+      movingArmy = Math.floor(movingArmy / 2);
+    }
     if (movingArmy <= 0) {
       return false;
     }
@@ -666,42 +679,20 @@
     tickTimer = window.setInterval(tick, TICK_MS);
   }
 
-  function stopCrownBoost() {
-    if (crownBoostTimer) {
-      window.clearInterval(crownBoostTimer);
-      crownBoostTimer = 0;
-    }
-  }
-
-  function startCrownBoost() {
-    stopCrownBoost();
+  function startGameWithInitialArmy() {
     state.running = true;
     state.turn = 0;
     state.queue = [];
     state.selected = { x: -1, y: -1 };
-    setPaused(true, '教学加速中：皇冠兵力从 1 提升到 100。');
+    state.moveMode = 1;
+    setPaused(false, '');
 
     const crown = tileAt(POS.playerCrown[0], POS.playerCrown[1]);
     if (crown) {
-      crown.army = 1;
+      crown.army = 100;
     }
     refreshVisibility();
     renderAll();
-
-    crownBoostTimer = window.setInterval(function () {
-      const crownTile = tileAt(POS.playerCrown[0], POS.playerCrown[1]);
-      if (!crownTile) {
-        stopCrownBoost();
-        return;
-      }
-      crownTile.army = Math.min(100, crownTile.army + 11);
-      renderAll();
-      if (crownTile.army >= 100) {
-        stopCrownBoost();
-        setPaused(false, '');
-        nextStep();
-      }
-    }, 140);
   }
 
   function isOwned(pos) {
@@ -793,7 +784,12 @@
       setPaused(true, '教学暂停：请再试一次缩放地图。');
       state.running = false;
     } else if (index === 2) {
-      startCrownBoost();
+      startGameWithInitialArmy();
+      window.setTimeout(function () {
+        if (state.currentStep === 2) {
+          nextStep();
+        }
+      }, 220);
       return;
     } else if (index === STEP_LIST.length - 1) {
       setPaused(true, '教程结束。');
@@ -817,8 +813,10 @@
     if (!state.running || !canIssueFromSelectedTo(x, y)) {
       return false;
     }
-    addQueueCommand(state.selected.x, state.selected.y, x, y);
+    const half = state.moveMode === 2;
+    addQueueCommand(state.selected.x, state.selected.y, x, y, half);
     state.selected = { x: x, y: y };
+    state.moveMode = 1;
     renderAll();
     evaluateStepProgress();
     return true;
@@ -829,18 +827,16 @@
       return;
     }
 
-    if (tryQueueAttackTo(x, y)) {
-      return;
-    }
-
     if (!state.running) {
       return;
     }
 
     if (isOwnTile(x, y) && state.visible[x][y]) {
       state.selected = { x: x, y: y };
+      state.moveMode = 1;
     } else {
       state.selected = { x: -1, y: -1 };
+      state.moveMode = 1;
     }
 
     renderAll();
@@ -943,6 +939,7 @@
         handleTileClick(downCell.x, downCell.y);
       } else if (downOnBack && state.running) {
         state.selected = { x: -1, y: -1 };
+        state.moveMode = 1;
         renderAll();
       }
     }
@@ -1012,8 +1009,18 @@
     if (key === ' ') {
       event.preventDefault();
       state.selected = { x: -1, y: -1 };
+      state.moveMode = 1;
       renderAll();
       evaluateStepProgress();
+      return;
+    }
+    if (key === 'z') {
+      event.preventDefault();
+      if (!state.running || state.selected.x < 0 || state.selected.y < 0) {
+        return;
+      }
+      state.moveMode = 3 - state.moveMode;
+      renderAll();
     }
   }
 
@@ -1039,7 +1046,6 @@
   }
 
   function resetTutorial() {
-    stopCrownBoost();
     state = createInitialState();
     setupScenarioBoard();
     refreshVisibility();
