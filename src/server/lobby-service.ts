@@ -247,6 +247,9 @@ class LobbyService {
       if (value === 'archipelago') {
         return '群岛要塞';
       }
+      if (value === 'mediterranean') {
+        return '地中海';
+      }
       return '标准地图';
     }
     return String(value);

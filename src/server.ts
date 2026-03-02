@@ -34,8 +34,10 @@ const GENERAL_RATE_LIMIT = { max: 1000, timeWindow: '1 minute' };
 const WEBHOOK_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
 const AUTH_PAGE_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
 const AUTH_ACTION_RATE_LIMIT = { max: 20, timeWindow: '1 minute' };
-const MAP_EXAMPLE_PLAYER_COUNT = 4;
-const MAP_EXAMPLE_MAP_MODES: LobbyConfig['map_mode'][] = ['random', 'maze', 'archipelago'];
+const MAP_EXAMPLE_DEFAULT_PLAYER_COUNT = 4;
+const MAP_EXAMPLE_MIN_PLAYER_COUNT = 2;
+const MAP_EXAMPLE_MAX_PLAYER_COUNT = MAX_TEAMS;
+const MAP_EXAMPLE_MAP_MODES: LobbyConfig['map_mode'][] = ['random', 'maze', 'archipelago', 'mediterranean'];
 const RATE_LIMIT_REAL_IP_HEADERS = [
   'cf-connecting-ip',
   'true-client-ip',
@@ -47,18 +49,18 @@ const RATE_LIMIT_REAL_IP_HEADERS = [
 
 const buildMapExample = async (
   mapMode: LobbyConfig['map_mode'],
+  playerCount: number,
 ): Promise<{
   map_mode: LobbyConfig['map_mode'];
-  map_token: string;
   n: number;
   m: number;
   grid_type: number[];
   army_cnt: number[];
 }> => {
   const mapToken = randomBytes(16).toString('hex');
-  const mapSizeRatio = resolveMapSizeRatioByPlayers(MAP_EXAMPLE_PLAYER_COUNT);
-  const playerNames = Array.from({ length: MAP_EXAMPLE_PLAYER_COUNT }, (_, index) => `P${index + 1}`);
-  const playerTeams = Array.from({ length: MAP_EXAMPLE_PLAYER_COUNT }, (_, index) => index + 1);
+  const mapSizeRatio = resolveMapSizeRatioByPlayers(playerCount);
+  const playerNames = Array.from({ length: playerCount }, (_, index) => `P${index + 1}`);
+  const playerTeams = Array.from({ length: playerCount }, (_, index) => index + 1);
   const generated = await GameEngine.buildReplayBaseMap({
     width_ratio: mapSizeRatio,
     height_ratio: mapSizeRatio,
@@ -75,9 +77,19 @@ const buildMapExample = async (
   });
   return {
     map_mode: mapMode,
-    map_token: mapToken,
     ...generated,
   };
+};
+
+const isMapExampleMode = (value: string): value is LobbyConfig['map_mode'] =>
+  MAP_EXAMPLE_MAP_MODES.includes(value as LobbyConfig['map_mode']);
+
+const parseMapExamplePlayerCount = (value: unknown): number => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) {
+    return MAP_EXAMPLE_DEFAULT_PLAYER_COUNT;
+  }
+  return Math.max(MAP_EXAMPLE_MIN_PLAYER_COUNT, Math.min(MAP_EXAMPLE_MAX_PLAYER_COUNT, parsed));
 };
 
 const normalizeIpToken = (token: string): string | null => {
@@ -545,10 +557,14 @@ const boot = async (): Promise<void> => {
       return reply.code(401).send({ error: '未登录或登录已失效。' });
     }
 
-    const examples = await Promise.all(MAP_EXAMPLE_MAP_MODES.map((mapMode) => buildMapExample(mapMode)));
+    const query = request.query as { map_mode?: unknown; players?: unknown };
+    const mapModeRaw = String(query.map_mode ?? 'random');
+    const mapMode = isMapExampleMode(mapModeRaw) ? mapModeRaw : 'random';
+    const players = parseMapExamplePlayerCount(query.players);
+    const example = await buildMapExample(mapMode, players);
     return reply.send({
-      players: MAP_EXAMPLE_PLAYER_COUNT,
-      examples,
+      players,
+      example,
     });
   });
 
@@ -790,6 +806,8 @@ const boot = async (): Promise<void> => {
             mapMode = 'maze';
           } else if (mapModeRaw === 'archipelago') {
             mapMode = 'archipelago';
+          } else if (mapModeRaw === 'mediterranean') {
+            mapMode = 'mediterranean';
           }
           if (mapMode !== oldConf.map_mode) {
             nextConf.map_mode = mapMode;

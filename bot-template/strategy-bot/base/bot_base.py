@@ -7,7 +7,6 @@
 import sys
 import traceback
 import logbook
-import os
 import queue
 import threading
 import time
@@ -82,10 +81,6 @@ class GeneralsClientHost(object):
 
             if elapsed > 30 and not gameThread.is_alive():
                 logbook.info(f'gameThread is dead. BREAKING OUT OF _running LOOP BECAUSE {elapsed:.2f} seconds elapsed...?')
-                self._running = False
-
-            if elapsed > 1800:
-                logbook.info(f'BREAKING OUT OF _running LOOP BECAUSE {elapsed:.2f} seconds elapsed...?')
                 self._running = False
 
         numLivingThreads = 0
@@ -205,14 +200,6 @@ class GeneralsClientHost(object):
                 if self._game and self._game.terminated:
                     logbook.info('GAME WAS TERMINATED, TERMING UPDATE LOOP TOO')
                     break
-
-                if time.perf_counter() - lastUpd > 60:
-                    if not self._game:
-                        logbook.info('Moves thread hasnt gotten anything in ages and theres no game client still')
-                        break
-                    if not self._game:
-                        logbook.info('Moves thread hasnt gotten anything in ages and theres no game client still')
-                        break
 
             except:
                 exc_type, exc_value, exc_traceback = sys.exc_info()

@@ -10,6 +10,7 @@ import {
   resolveSeededTerrainRatio,
 } from './map/map-core';
 import { generateArchipelagoMap } from './map/archipelago-map-generator';
+import { generateMediterraneanMap } from './map/mediterranean-map-generator';
 import { generateMazeMap } from './map/maze-map-generator';
 import { generateRandomMap } from './map/random-map-generator';
 import { ReplayStore } from './replay-store';
@@ -569,6 +570,15 @@ export class GameEngine {
       });
     } else if (this.mapMode === 'archipelago') {
       generated = generateArchipelagoMap(this.rng, {
+        widthRatio: this.widthRatio,
+        heightRatio: this.heightRatio,
+        cityRatio: this.cityRatio,
+        mountainRatio: this.mountainRatio,
+        swampRatio: this.swampRatio,
+        requiredPlayers,
+      });
+    } else if (this.mapMode === 'mediterranean') {
+      generated = generateMediterraneanMap(this.rng, {
         widthRatio: this.widthRatio,
         heightRatio: this.heightRatio,
         cityRatio: this.cityRatio,
