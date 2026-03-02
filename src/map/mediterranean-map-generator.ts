@@ -191,14 +191,14 @@ const generateMediterraneanMap = (
 
   const cityRatio = MAX_CITY_RATIO * config.cityRatio * 1.15;
   const ringSwampRatio = MAX_SWAMP_RATIO * config.swampRatio * 0.4;
-  const mountainRatio = MAX_MOUNTAIN_RATIO * config.mountainRatio;
+  const mountainRatio = MAX_MOUNTAIN_RATIO * config.mountainRatio * 0.7;
 
   const centerX = (n - 1) / 2;
   const centerY = (m - 1) / 2;
   const centerRadiusX = Math.max(2, n * (0.34 + rng.next() * 0.08));
   const centerRadiusY = Math.max(2, m * (0.34 + rng.next() * 0.08));
   const centerSwampNoise = 0.1 + rng.next() * 0.08;
-  const centerMountainChance = 0.04 + rng.next() * 0.04;
+  const centerMountainChance = 0.015 + rng.next() * 0.02;
   const baseSpawnBand = Math.max(2, Math.floor(Math.min(n, m) * 0.12));
 
   let gridType: Grid<Tile> = build2D<Tile>(n, m, 0);
@@ -273,10 +273,46 @@ const generateMediterraneanMap = (
   shuffle(cityCandidates, rng);
   const targetCityCount = Math.min(
     cityCandidates.length,
-    Math.max(1, Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 1.4)),
+    Math.max(1, Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 1.85)),
   );
   for (let i = 0; i < targetCityCount; i += 1) {
     const [x, y] = cityCandidates[i];
+    gridType[x][y] = -1;
+  }
+
+  const innerSeaCityCandidates: Array<[number, number]> = [];
+  for (let i = 1; i + 1 < n; i += 1) {
+    for (let j = 1; j + 1 < m; j += 1) {
+      if (!st[i][j] || gridType[i][j] !== 2) {
+        continue;
+      }
+      let surroundedByNonEmpty = true;
+      for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dy = -1; dy <= 1; dy += 1) {
+          if (dx === 0 && dy === 0) {
+            continue;
+          }
+          if (gridType[i + dx][j + dy] === 0) {
+            surroundedByNonEmpty = false;
+            break;
+          }
+        }
+        if (!surroundedByNonEmpty) {
+          break;
+        }
+      }
+      if (surroundedByNonEmpty) {
+        innerSeaCityCandidates.push([i, j]);
+      }
+    }
+  }
+  shuffle(innerSeaCityCandidates, rng);
+  const innerSeaCityTarget = Math.min(
+    innerSeaCityCandidates.length,
+    Math.max(0, Math.floor(targetCityCount * 0.16)),
+  );
+  for (let i = 0; i < innerSeaCityTarget; i += 1) {
+    const [x, y] = innerSeaCityCandidates[i];
     gridType[x][y] = -1;
   }
 
@@ -363,7 +399,24 @@ const generateMediterraneanMap = (
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
       if (gridType[i][j] === -1) {
-        armyCnt[i][j] = rng.intInclusive(20, 30);
+        let surroundedByNonEmpty = i > 0 && j > 0 && i + 1 < n && j + 1 < m;
+        if (surroundedByNonEmpty) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            for (let dy = -1; dy <= 1; dy += 1) {
+              if (dx === 0 && dy === 0) {
+                continue;
+              }
+              if (gridType[i + dx][j + dy] === 0) {
+                surroundedByNonEmpty = false;
+                break;
+              }
+            }
+            if (!surroundedByNonEmpty) {
+              break;
+            }
+          }
+        }
+        armyCnt[i][j] = surroundedByNonEmpty ? 10 : rng.intInclusive(20, 30);
       }
     }
   }
