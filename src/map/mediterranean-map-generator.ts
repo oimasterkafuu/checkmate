@@ -122,9 +122,9 @@ const generateMediterraneanMap = (
 
   const centerX = (n - 1) / 2;
   const centerY = (m - 1) / 2;
-  const centerRadiusX = Math.max(2, n * (0.31 + rng.next() * 0.1));
-  const centerRadiusY = Math.max(2, m * (0.31 + rng.next() * 0.1));
-  const centerSwampNoise = 0.08 + rng.next() * 0.06;
+  const centerRadiusX = Math.max(2, n * (0.42 + rng.next() * 0.08));
+  const centerRadiusY = Math.max(2, m * (0.42 + rng.next() * 0.08));
+  const centerSwampNoise = 0.06 + rng.next() * 0.05;
   const centerMountainChance = 0.04 + rng.next() * 0.04;
   const baseSpawnBand = Math.max(1, Math.floor(Math.min(n, m) * 0.11));
 
