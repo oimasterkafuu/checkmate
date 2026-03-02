@@ -93,20 +93,31 @@ def get_file_safe_username(botName: str) -> str:
 
 
 def get_config_log_folder():
+    env_override = os.environ.get("BOT_LOG_DIR")
+    if env_override:
+        return env_override.rstrip("/")
+
     cfgPath = pathlib.Path(__file__).parent / "../run_config.txt"
-    with open(cfgPath, 'r') as file:
-        data = file.read()
-    cfgContents = data.splitlines()
-    for line in cfgContents:
-        if "=" not in line:
-            continue
+    cfgPath = cfgPath.resolve()
 
-        key, value = line.split('=')
+    if cfgPath.exists():
+        with open(cfgPath, 'r') as file:
+            data = file.read()
+        cfgContents = data.splitlines()
+        for line in cfgContents:
+            if "=" not in line:
+                continue
 
-        if key == "log_folder":
-            return value.strip('/')
+            key, value = line.split("=", 1)
 
-    raise AssertionError(f'Unable to find a log folder in {cfgPath}')
+            if key.strip() == "log_folder":
+                configured = value.strip()
+                if configured:
+                    return configured.rstrip("/")
+
+    # Fallback for environments where upstream run_config.txt is absent.
+    default_dir = pathlib.Path(__file__).parent / "logs"
+    return str(default_dir.resolve())
 
 
 def get_file_logging_directory(rawBotName: str, replayId: str) -> str:
