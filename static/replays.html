@@ -48,13 +48,7 @@
         </tbody>
       </table>
       <p v-if="!replays.length && !loadingMore" style="margin-top: 12px">暂无回放。</p>
-      <button
-        v-if="hasMore"
-        @click="loadMore"
-        :disabled="loadingMore"
-        class="small"
-        style="margin-top: 12px"
-      >
+      <button v-if="hasMore" @click="loadMore" :disabled="loadingMore" class="small" style="margin-top: 12px">
         {{ loadingMore ? '加载中...' : '加载更多' }}
       </button>
     </center>

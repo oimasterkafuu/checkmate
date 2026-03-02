@@ -81,7 +81,12 @@ const collectPlacementsForSize = (
   return placements;
 };
 
-const buildCenterCells = (top: number, left: number, height: number, width: number): Array<[number, number]> => {
+const buildCenterCells = (
+  top: number,
+  left: number,
+  height: number,
+  width: number,
+): Array<[number, number]> => {
   const centerRows: number[] = [];
   const centerCols: number[] = [];
   const rowStart = top + Math.floor((height - 1) / 2);
@@ -135,11 +140,7 @@ const buildIslandInfo = (
   };
 };
 
-const placeRectIsland = (
-  island: IslandInfo,
-  gridType: Tile[][],
-  islandIdGrid: number[][],
-): void => {
+const placeRectIsland = (island: IslandInfo, gridType: Tile[][], islandIdGrid: number[][]): void => {
   for (let i = 0; i < island.baseCells.length; i += 1) {
     const [x, y] = island.baseCells[i];
     gridType[x][y] = 0;
@@ -741,10 +742,7 @@ const placeSwampMountains = (
   }
 };
 
-const generateArchipelagoMap = (
-  rng: SeededRandom,
-  config: ArchipelagoMapGenerationConfig,
-): GeneratedMap => {
+const generateArchipelagoMap = (rng: SeededRandom, config: ArchipelagoMapGenerationConfig): GeneratedMap => {
   const { n, m } = computeBaseMapDimensions(rng, config.heightRatio, config.widthRatio);
   const requiredPlayers = Math.max(0, config.requiredPlayers);
 

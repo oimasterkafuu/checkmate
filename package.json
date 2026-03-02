@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"AGENTS.md\""
+    "format": "prettier --write \"src/**/*.ts\" \"static/**\" \"README.md\" \"AGENTS.md\""
   },
   "repository": {
     "type": "git",

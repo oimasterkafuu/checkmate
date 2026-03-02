@@ -135,7 +135,9 @@
         submitAuth('register');
       });
       $('#auth-captcha').on('input', function () {
-        var normalized = String($(this).val()).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        var normalized = String($(this).val())
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .toUpperCase();
         $(this).val(normalized);
       });
       $('#auth-password').on('keypress', function (e) {

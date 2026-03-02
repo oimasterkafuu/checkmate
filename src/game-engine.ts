@@ -75,7 +75,12 @@ const MAZE_NEAREST_CITY_RETRY_LIMIT = 400;
 const isValidGeneralPos = (pos: GeneralPos | undefined): pos is GeneralPos =>
   Boolean(pos) && !(pos[0] === -1 && pos[1] === -1);
 
-const buildShortestPathDistance = (n: number, m: number, gridType: Grid<Tile>, start: GeneralPos): Int32Array => {
+const buildShortestPathDistance = (
+  n: number,
+  m: number,
+  gridType: Grid<Tile>,
+  start: GeneralPos,
+): Int32Array => {
   const total = n * m;
   const dist = new Int32Array(total);
   dist.fill(-1);

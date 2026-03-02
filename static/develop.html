@@ -185,7 +185,7 @@
         </p>
         <ol>
           <li>浏览器正常登录账号。</li>
-          <li>打开开发者工具，进入 Application/Storage 下的 Cookies，找到 <code>auth_token</code>。</li>
+          <li>打开开发者工具，进入 Application → Storage → Cookies，找到 <code>auth_token</code>。</li>
           <li>复制 token，作为机器人进程的环境变量（例如 <code>BOT_TOKEN</code>）。</li>
         </ol>
       </section>
@@ -221,7 +221,15 @@ BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token p
             >
             <code>bot-template/strategy-bot</code>
           </a>
-          ，该模板现在使用 Python 启动（已适配本站 Socket.IO 协议）。
+          ，该模板现在使用 Python 启动（已适配本站 Socket.IO 协议），其策略核心来源于
+          <a
+            class="dev-link"
+            href="https://github.com/EklipZgit/generals-bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><code>EklipZgit/generals-bot</code></a
+          >
+          的快照并遵循 MIT 许可证。
           <pre class="code-snippet"><code># 运行示例
 cd bot-template/strategy-bot
 python3 -m venv .venv
