@@ -47,7 +47,7 @@
 
 #replay-top-left {
   position: fixed;
-  top: 35px;
+  top: 40px;
   left: -10px;
   z-index: 25;
   display: flex;

@@ -540,10 +540,9 @@ const boot = async (): Promise<void> => {
     const limit = Number.isNaN(limitRaw) || limitRaw <= 0 ? 50 : Math.min(limitRaw, 50);
 
     const allItems = await replayStore.listReplays();
-    const ownItems = allItems.filter((item) => item.rank.includes(authUser.username));
-    const items = ownItems.slice(offset, offset + limit);
+    const items = allItems.slice(offset, offset + limit);
     const next_offset = offset + items.length;
-    const has_more = next_offset < ownItems.length;
+    const has_more = next_offset < allItems.length;
 
     return reply.send({ items, next_offset, has_more });
   });
