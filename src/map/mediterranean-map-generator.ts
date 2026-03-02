@@ -116,7 +116,7 @@ const generateMediterraneanMap = (
   const owner = build2D(n, m, 0);
   const armyCnt = build2D(n, m, 0);
 
-  const cityRatio = MAX_CITY_RATIO * config.cityRatio;
+  const cityRatio = MAX_CITY_RATIO * config.cityRatio * 1.15;
   const ringSwampRatio = MAX_SWAMP_RATIO * config.swampRatio * 0.4;
   const mountainRatio = MAX_MOUNTAIN_RATIO * config.mountainRatio;
 
@@ -124,7 +124,7 @@ const generateMediterraneanMap = (
   const centerY = (m - 1) / 2;
   const centerRadiusX = Math.max(2, n * (0.42 + rng.next() * 0.08));
   const centerRadiusY = Math.max(2, m * (0.42 + rng.next() * 0.08));
-  const centerSwampNoise = 0.06 + rng.next() * 0.05;
+  const centerSwampNoise = 0.09 + rng.next() * 0.08;
   const centerMountainChance = 0.04 + rng.next() * 0.04;
   const baseSpawnBand = Math.max(1, Math.floor(Math.min(n, m) * 0.11));
 
@@ -176,6 +176,33 @@ const generateMediterraneanMap = (
   const st = build2D(n, m, false);
   markLargestComponent(gridType, n, m, st);
 
+  const coastalCityCandidates: Array<[number, number]> = [];
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      if (!st[i][j] || gridType[i][j] === 1 || gridType[i][j] === -1) {
+        continue;
+      }
+      if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
+        continue;
+      }
+      const dx = (i - centerX) / centerRadiusX;
+      const dy = (j - centerY) / centerRadiusY;
+      const radial = dx * dx + dy * dy;
+      if (radial > 1.02 && radial < 2.3) {
+        coastalCityCandidates.push([i, j]);
+      }
+    }
+  }
+  shuffle(coastalCityCandidates, rng);
+  const coastalCityTarget = Math.min(
+    coastalCityCandidates.length,
+    Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 0.55),
+  );
+  for (let i = 0; i < coastalCityTarget; i += 1) {
+    const [x, y] = coastalCityCandidates[i];
+    gridType[x][y] = -1;
+  }
+
   const requiredPlayers = Math.max(0, config.requiredPlayers);
   const spawnPoints: Array<[number, number]> = [];
   if (requiredPlayers > 0) {
@@ -207,7 +234,7 @@ const generateMediterraneanMap = (
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
       if (gridType[i][j] === -1) {
-        armyCnt[i][j] = rng.intInclusive(40, 50);
+        armyCnt[i][j] = rng.intInclusive(20, 30);
       }
     }
   }
