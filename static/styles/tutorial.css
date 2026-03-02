@@ -2,17 +2,17 @@ body {
   overflow: hidden;
 }
 
-#tutorial-top-right {
+#tutorial-top-left {
   display: flex;
   align-items: center;
   gap: 6px;
   position: fixed;
   top: 12px;
-  right: 12px;
+  left: 12px;
   z-index: 30;
 }
 
-#tutorial-top-right #account-name {
+#tutorial-top-left #account-name {
   display: inline-block;
   padding: 6px 8px;
   font-size: 13px;
@@ -104,18 +104,18 @@ body {
 }
 
 @media (max-width: 640px) {
-  #tutorial-top-right {
-    right: 8px;
+  #tutorial-top-left {
+    left: 8px;
     top: 8px;
     gap: 4px;
   }
 
-  #tutorial-top-right #account-name {
+  #tutorial-top-left #account-name {
     font-size: 12px;
     padding: 4px 6px;
   }
 
-  #tutorial-top-right button {
+  #tutorial-top-left button {
     font-size: 13px;
     padding: 5px 10px;
   }

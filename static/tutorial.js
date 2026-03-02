@@ -5,10 +5,14 @@
   const ENEMY_ID = 2;
   const SCALE_CLASS = 3;
   const TICK_MS = 650;
-  const MIN_ZOOM = 0.72;
+  const MIN_ZOOM = 0.45;
   const MAX_ZOOM = 2.25;
   const CLICK_TOLERANCE = 6;
   const PAN_TRIGGER_PIXELS = 18;
+  const CENTER_THRESHOLD_PX = 44;
+  const TARGET_TUTORIAL_ZOOM = 0.8;
+  const INITIAL_PAN_X = -180;
+  const INITIAL_PAN_Y = 120;
 
   const POS = {
     playerCrown: [4, 2],
@@ -32,21 +36,15 @@
 
   const STEP_LIST = [
     {
-      title: '拖动地图（游戏自动暂停）',
-      body: '按住鼠标左键拖动地图。教学开始前，游戏会保持暂停。',
-      hint: '完成拖动后自动进入下一步。',
+      title: '将拖动地图到屏幕的中心',
+      body: '按住鼠标左键拖动地图，让地图中心回到屏幕中心。',
+      hint: '地图回到中心后自动进入下一步。',
       targets: [POS.playerCrown],
     },
     {
-      title: '缩放地图（游戏自动暂停）',
-      body: '使用滚轮放大/缩小地图，熟悉视野控制。',
-      hint: '缩放至少 1 次后自动进入下一步。',
-      targets: [POS.playerCrown],
-    },
-    {
-      title: '游戏开始：皇冠初始兵力',
-      body: '游戏开始时，你的皇冠初始兵力就是 100。',
-      hint: '接下来将进入操作教学。',
+      title: '用滚轮放大地图，直到大小合适',
+      body: '继续滚轮放大地图，直到你觉得观察和操作都顺手。',
+      hint: '放大到合适大小后自动进入下一步。',
       targets: [POS.playerCrown],
     },
     {
@@ -156,9 +154,9 @@
       didZoom: false,
       enemyDefeated: false,
       moveMode: 1,
-      panX: 0,
-      panY: 0,
-      zoom: 1,
+      panX: INITIAL_PAN_X,
+      panY: INITIAL_PAN_Y,
+      zoom: MIN_ZOOM,
       pointer: {
         active: false,
         pointerId: -1,
@@ -239,6 +237,10 @@
   function setPaused(paused, reason) {
     state.paused = paused;
     state.pauseReason = reason || '';
+  }
+
+  function isMapCentered() {
+    return Math.abs(state.panX) <= CENTER_THRESHOLD_PX && Math.abs(state.panY) <= CENTER_THRESHOLD_PX;
   }
 
   function encodeVisibleTile(tile) {
@@ -549,10 +551,11 @@
         if (!tile || tile.owner !== ENEMY_ID) {
           continue;
         }
-        tile.owner = PLAYER_ID;
         if (tile.terrain === 'crown') {
           tile.terrain = 'city';
+          tile.army = Math.floor(tile.army / 2);
         }
+        tile.owner = PLAYER_ID;
       }
     }
     state.enemyDefeated = true;
@@ -707,58 +710,56 @@
   function evaluateStepProgress() {
     switch (state.currentStep) {
       case 0:
-        if (state.didPan) {
+        if (state.didPan && isMapCentered()) {
           nextStep();
         }
         break;
       case 1:
-        if (state.didZoom) {
+        if (state.zoom >= TARGET_TUTORIAL_ZOOM) {
           nextStep();
         }
         break;
       case 2:
-        break;
-      case 3:
         if (isSelected(POS.playerCrown)) {
           nextStep();
         }
         break;
-      case 4:
+      case 3:
         if (isOwned(POS.firstMove)) {
           nextStep();
         }
         break;
-      case 5:
+      case 4:
         if (isOwned([4, 5])) {
           nextStep();
         }
         break;
-      case 6:
+      case 5:
         if (isOwned(POS.scout)) {
           nextStep();
         }
         break;
-      case 7:
+      case 6:
         if (isOwned(POS.neutralCity)) {
           nextStep();
         }
         break;
-      case 8:
+      case 7:
         if (isOwned(POS.swamp)) {
           nextStep();
         }
         break;
-      case 9:
+      case 8:
         if (isOwned(POS.enemyLand)) {
           nextStep();
         }
         break;
-      case 10:
+      case 9:
         if (isOwned(POS.enemyCity)) {
           nextStep();
         }
         break;
-      case 11:
+      case 10:
         if (state.enemyDefeated || isOwned(POS.enemyCrown)) {
           nextStep();
         }
@@ -781,16 +782,12 @@
       setPaused(true, '教学暂停：请先拖动地图。');
       state.running = false;
     } else if (index === 1) {
-      setPaused(true, '教学暂停：请再试一次缩放地图。');
+      setPaused(true, '教学暂停：请继续滚轮放大地图。');
       state.running = false;
     } else if (index === 2) {
-      startGameWithInitialArmy();
-      window.setTimeout(function () {
-        if (state.currentStep === 2) {
-          nextStep();
-        }
-      }, 220);
-      return;
+      if (!state.running) {
+        startGameWithInitialArmy();
+      }
     } else if (index === STEP_LIST.length - 1) {
       setPaused(true, '教程结束。');
       state.running = false;
@@ -914,6 +911,8 @@
 
     if (!state.didPan && Math.sqrt(dx * dx + dy * dy) > PAN_TRIGGER_PIXELS) {
       state.didPan = true;
+    }
+    if (state.currentStep === 0 && state.didPan) {
       evaluateStepProgress();
     }
   }
@@ -962,6 +961,8 @@
       dom.map.style.setProperty('--zoom', String(state.zoom));
       if (!state.didZoom) {
         state.didZoom = true;
+      }
+      if (state.currentStep === 1) {
         evaluateStepProgress();
       }
     }
