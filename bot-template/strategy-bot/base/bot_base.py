@@ -143,38 +143,25 @@ class GeneralsClientHost(object):
         create_thread(self._suicide_in_4_seconds)
 
     def _set_update(self, updateTuple: typing.Tuple[str, typing.Any]) -> bool:
-        """Returns True if the game is over, False otherwise."""
+        """Queue server update for move thread. Returns True only when caller should stop update loop."""
         updateType, update = updateTuple
         timeAccurate = time.time_ns() / (10 ** 9)
         self._server_updates_queue.put((updateType, update, timeAccurate), block=True, timeout=5.0)
 
-        over = False
         if updateType == "game_won":
-            over = True
+            logbook.info(f"!!!! Game Complete. Result = {updateType} !!!!")
+            if '_moves_realized' in dir(self):
+                logbook.info(f"Moves: {self._updates_received:d}, Realized: {self._moves_realized:d}")
         elif updateType == "game_lost":
-            over = True
+            logbook.info(f"!!!! Game Complete. Result = {updateType} !!!!")
+            if '_moves_realized' in dir(self):
+                logbook.info(f"Moves: {self._updates_received:d}, Realized: {self._moves_realized:d}")
         elif updateType == "game_update" and update is not None and 'turn' in update:
             if update['turn'] > 3000:
                 self._game.send_surrender()
 
-        if over:
-            logbook.info(f"!!!! Game Complete. Result = {updateType} !!!!")
-            if '_moves_realized' in dir(self):
-                logbook.info(f"Moves: {self._updates_received:d}, Realized: {self._moves_realized:d}")
-
-            # why was this sleep here?
-            time.sleep(2.0)
-            self._running = False
-            logbook.info("terminating in _set_update")
-            self._game._terminate()
-            time.sleep(2.0)
-            logbook.info("Spawning suicide thread from server-updates thread..?")
-            try:
-                create_thread(self._suicide_in_4_seconds)
-            except:
-                logbook.info(traceback.format_exc())
-
-        return over
+        # Keep process alive between matches.
+        return False
 
     ######################### Move Generation #########################
 
@@ -183,12 +170,6 @@ class GeneralsClientHost(object):
         self._updates_received = 0
         lastUpd = time.perf_counter()
         while self._running:
-            if self._map is not None and self._map.complete and self._map.remainingPlayers > 1 and not self._map.players[self._map.player_index].dead:
-                # bot gave up, terminate
-                self._running = False
-                logbook.info(f'bot gave up :(')
-                break
-
             try:
                 updateType, update, updateReceivedTime = self._server_updates_queue.get(block=True, timeout=1.0)
                 gameUpdateReceived = False
@@ -243,16 +224,31 @@ class GeneralsClientHost(object):
                 logbook.info("err")  # Log it or whatever here
                 logbook.error(''.join('!! ' + line for line in lines))  # Log it or whatever here
 
+    def _should_rebuild_map(self, data: dict[str, typing.Any]) -> bool:
+        if self._map is None:
+            return True
+        turn = data.get('turn')
+        if not isinstance(turn, int):
+            return False
+        # New match turns restart from low numbers.
+        if self._map.complete and turn <= 5:
+            return True
+        return turn < self._map.turn
+
     def _process_map_diff(self, data):
-        if not self._seen_update:
-            logbook.info('First update...?')
+        should_rebuild_map = (not self._seen_update) or self._should_rebuild_map(data)
+        if should_rebuild_map:
+            if self._seen_update:
+                logbook.info('Detected new match, rebuilding map state...')
+            else:
+                logbook.info('First update...')
             self._seen_update = True
             self._map = Map(self._game.start_data, data, self._game.currentCustomMapData)
             self._game.map = self._map
             self._map.modifiers = self._game.modifiers
+            return
 
-        logbook.info('applying server update...?')
-
+        logbook.info('applying server update...')
         self._map.apply_server_update(data)
 
     def _make_result(self, update, data: dict | None):

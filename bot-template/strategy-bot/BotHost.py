@@ -78,9 +78,22 @@ class BotHostBase(object):
         logbook.info("attempting to start viewer loop")
         self._viewer.start()
 
+    def _reset_bot_for_new_match(self):
+        clear_moves_func = self.eklipz_bot.clear_moves_func
+        surrender_func = self.eklipz_bot.surrender_func
+        no_file_logging = self.eklipz_bot.no_file_logging
+
+        self.eklipz_bot = EklipZBot()
+        self.eklipz_bot.clear_moves_func = clear_moves_func
+        self.eklipz_bot.surrender_func = surrender_func
+        self.eklipz_bot.no_file_logging = no_file_logging
+
     def _ensure_bot_initialized(self, currentMap: MapBase) -> bool:
         if self.eklipz_bot.isInitialized:
-            return True
+            if self.eklipz_bot._map is currentMap:
+                return True
+            logbook.info('Detected new match map object, resetting bot state...')
+            self._reset_bot_for_new_match()
 
         player_idx = currentMap.player_index
         my_general = None
