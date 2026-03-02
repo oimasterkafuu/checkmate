@@ -573,8 +573,8 @@ $(document).ready(function () {
     $($('#replay-bottom-bar')[0].children[0]).on('click', backTurn);
     $($('#replay-bottom-bar')[0].children[1]).on('click', switchAutoplay);
     $($('#replay-bottom-bar')[0].children[2]).on('click', nextTurn);
-    $($('#replay-top-left')[0].children[2]).on('click', switchAutoplay);
-    $($('#replay-top-left')[0].children[3]).on('click', _exit);
+    $('#replay-autoplay-btn').on('click', switchAutoplay);
+    $('#replay-exit-btn').on('click', _exit);
     $('#tabs-replay-autoplay').each(function () {
       for (var i = 1; i < this.children.length; i++) {
         initTab(this, this.children[i], setAutoplayRate);
