@@ -313,7 +313,7 @@ const generateMediterraneanMap = (
   shuffle(innerSeaCityCandidates, rng);
   const innerSeaCityTarget = Math.min(
     innerSeaCityCandidates.length,
-    Math.max(0, Math.floor(targetCityCount * 0.16)),
+    Math.max(1, Math.floor(targetCityCount * 0.3)),
   );
   const innerSeaCitySet = new Set<number>();
   for (let i = 0; i < innerSeaCityTarget; i += 1) {
