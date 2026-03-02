@@ -154,6 +154,22 @@ const writePatchPayload = (writer: ByteWriter, payload: ReplayPatchPayload): voi
   writeDiffU32(writer, payload.army_cnt);
 };
 
+const writeReplayMeta = (writer: ByteWriter, replay: ReplayData): void => {
+  const playerNames = replay.meta?.player_names ?? [];
+  const playerTeams = replay.meta?.player_teams ?? [];
+  const count = Math.min(playerNames.length, playerTeams.length);
+  if (count <= 0) {
+    writer.writeU8(0);
+    return;
+  }
+  writer.writeU8(1);
+  writer.writeU16(count);
+  for (let i = 0; i < count; i += 1) {
+    writer.writeString(playerNames[i]);
+    writer.writeU8(normalizeU32(playerTeams[i]));
+  }
+};
+
 export const encodeReplayPatchBinary = (replay: ReplayData): Buffer => {
   if (replay.n > 0xffff || replay.m > 0xffff) {
     throw new Error('地图尺寸超过当前回放二进制格式限制。');
@@ -170,5 +186,6 @@ export const encodeReplayPatchBinary = (replay: ReplayData): Buffer => {
     writePatchPayload(writer, patch.forward);
     writePatchPayload(writer, patch.backward);
   }
+  writeReplayMeta(writer, replay);
   return writer.toBuffer();
 };

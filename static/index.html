@@ -53,7 +53,10 @@
 
       function gotoRoom() {
         var room = normalizeRoomId($('#room-input').val());
-        if (!room) return;
+        if (!room) {
+          window.location.pathname = '/games/';
+          return;
+        }
         $('#room-input').val(room);
         window.location.pathname = '/games/' + room;
       }
