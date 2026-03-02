@@ -6,7 +6,7 @@
       content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
     />
     <link rel="stylesheet" href="/main.css" />
-    <title>Checkmate!! - 开发</title>
+    <title>Checkmate!! - 网站开发</title>
     <style>
       #app {
         max-width: 920px;
@@ -58,28 +58,14 @@
         border: 1px solid rgba(0, 128, 128, 0.5);
         background: rgba(0, 128, 128, 0.15);
       }
-      .protocol-table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
+      .cta-row {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
-      .protocol-table th,
-      .protocol-table td {
-        border-top: 1px solid rgba(255, 255, 255, 0.16);
-        text-align: left;
-        vertical-align: top;
-        padding: 10px 8px;
-        font-size: 14px;
-        line-height: 1.6;
-      }
-      .protocol-table tr:first-child th,
-      .protocol-table tr:first-child td {
-        border-top: none;
-      }
-      .protocol-table th {
-        width: 140px;
-        color: #d3f3f1;
-        font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+      .cta-row button {
+        min-width: 160px;
       }
       .code-snippet {
         margin-top: 10px;
@@ -104,15 +90,13 @@
     </div>
 
     <div id="app">
-      <h1 class="dev-title">参与 Checkmate!! 的开发</h1>
-      <p class="dev-subtitle">
-        众人拾柴火焰高。在游玩时，如果你有新想法，欢迎参与开发。
-      </p>
+      <h1 class="dev-title">Checkmate!! 网站开发</h1>
+      <p class="dev-subtitle">这里仅介绍网站与服务端开发流程。机器人协议文档已迁移到独立页面。</p>
 
       <section class="dev-panel">
-        <h3>网站功能开发流程</h3>
+        <h3>仓库与提交流程</h3>
         <p>
-          源码仓库：
+          主仓库：
           <a
             class="dev-link"
             href="https://github.com/oimasterkafuu/checkmate"
@@ -123,124 +107,44 @@
         </p>
         <ol>
           <li>在 GitHub 上 fork 仓库到你自己的账号。</li>
-          <li>clone 你的 fork，并创建一个只聚焦单一主题的开发分支。</li>
-          <li>完成功能开发，尽量保持模块边界清晰、命名统一、提交粒度合理。</li>
-          <li>推送分支并在 GitHub 发起 PR，描述改动动机、实现方式与影响范围。</li>
+          <li>clone 你的 fork，并创建一个只聚焦单一主题的分支。</li>
+          <li>完成功能开发后推送分支，并发起 PR。</li>
+          <li>PR 描述请说明动机、实现方式、影响范围和验证结果。</li>
         </ol>
+      </section>
+
+      <section class="dev-panel">
+        <h3>本地开发与检查</h3>
+        <p>项目包管理器统一使用 <code>pnpm</code>。</p>
+        <pre class="code-snippet"><code>pnpm install
+pnpm run lint
+pnpm run format
+pnpm run build</code></pre>
         <div class="dev-strong-checklist">
-          <b>为加快合并，请在提交前务必确认：</b>
+          <b>提交前建议至少确认：</b>
           <ul>
-            <li>代码结构清晰，避免把不相关改动混在同一个提交里。</li>
-            <li>ESLint 检查通过（例如：<code>pnpm run lint</code>）。</li>
-            <li>代码已经完成格式化（例如：<code>pnpm run format</code>）。</li>
+            <li>不混入无关改动，提交主题单一。</li>
+            <li>类型检查与构建通过。</li>
+            <li>静态资源和前端脚本已经格式化。</li>
           </ul>
         </div>
       </section>
 
       <section class="dev-panel">
-        <h3>交互协议</h3>
-        <p>机器人与服务端通过 Socket.IO 通信，连接地址是站点同源的 <code>/socket.io/</code>。</p>
-        <table class="protocol-table">
-          <tr>
-            <th>鉴权</th>
-            <td>
-              握手支持 <code>auth.token</code> 或 Cookie 里的 <code>auth_token</code>，本质都是同一个 JWT
-              会话令牌。
-            </td>
-          </tr>
-          <tr>
-            <th>入房</th>
-            <td><code>emit('join_game_room', { room })</code> 进入指定房间。</td>
-          </tr>
-          <tr>
-            <th>开局</th>
-            <td>
-              <code>on('init_map')</code> 获取地图尺寸与玩家 ID（<code>n</code>, <code>m</code>,
-              <code>player_ids</code>）。
-            </td>
-          </tr>
-          <tr>
-            <th>回合</th>
-            <td>
-              <code>on('update')</code> 接收地图与战局数据（<code>turn</code>, <code>is_diff</code>,
-              <code>grid_type</code>, <code>army_cnt</code>, <code>leaderboard</code>,
-              <code>game_end</code> 等）。
-            </td>
-          </tr>
-          <tr>
-            <th>操作</th>
-            <td>
-              主要通过 <code>emit('attack', { x, y, dx, dy, half })</code> 发送行动，也可用
-              <code>clear_queue</code>/<code>pop_queue</code> 调整队列。
-            </td>
-          </tr>
-        </table>
+        <h3>网站开发内容边界</h3>
+        <ul>
+          <li>大厅、房间、回放、认证、验证码、匹配逻辑等页面与服务端行为。</li>
+          <li>Socket.IO 协议新增字段时，请同步更新前端消费与文档。</li>
+          <li>地图生成、渲染和性能优化可在独立 PR 进行。</li>
+        </ul>
       </section>
 
       <section class="dev-panel">
-        <h3>为什么需要手工提取 token</h3>
-        <p>
-          登录和注册接口都要求验证码（captcha）。因此机器人通常不能直接完成自动登录，需要你先在网页端人工登录，再从
-          Cookie 提取 <code>auth_token</code> 给机器人使用。
-        </p>
-        <ol>
-          <li>浏览器正常登录账号。</li>
-          <li>打开开发者工具，进入 Application → Storage → Cookies，找到 <code>auth_token</code>。</li>
-          <li>复制 token，作为机器人进程的环境变量（例如 <code>BOT_TOKEN</code>）。</li>
-        </ol>
-      </section>
-
-      <section class="dev-panel">
-        <h3>机器人模板</h3>
-        <p>
-          仓库已提供机器人模板：
-          <a
-            class="dev-link"
-            href="https://github.com/oimasterkafuu/checkmate/tree/main/bot-template/random-patch-bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            >
-            <code>bot-template/random-patch-bot</code>
-          </a>
-        </p>
-        <p>
-          这个模板会在每个回合自动更新地图，然后从“当前可执行动作集合”中随机选一个动作发送。
-        </p>
-        <pre class="code-snippet"><code># 运行示例
-cd bot-template/random-patch-bot
-pnpm install
-BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token pnpm start</code></pre>
-        <p style="margin-top: 10px">你可以在模板基础上继续增加策略模块、路径规划、风险评估与回放分析。</p>
-        <p>
-          除此之外，你也可以参考另一个机器人模板，它有更复杂的决策策略：
-          <a
-            class="dev-link"
-            href="https://github.com/oimasterkafuu/checkmate/tree/main/bot-template/strategy-bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            >
-            <code>bot-template/strategy-bot</code>
-          </a>
-          ，该模板现在使用 Python 启动（已适配本站 Socket.IO 协议），其策略核心来源于
-          <a
-            class="dev-link"
-            href="https://github.com/EklipZgit/generals-bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            ><code>EklipZgit/generals-bot</code></a
-          >
-          的快照并遵循 MIT 许可证。
-          <pre class="code-snippet"><code># 运行示例
-cd bot-template/strategy-bot
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token BOT_NO_UI=1 python3 index.py</code></pre>
-          <div class="dev-strong-checklist">
-            <b>主仓库不接受机器人 PR，除非是对 <code>strategy-bot</code> 的改动，简洁其代码，增加其教育意义。</b>
-          </div>
-        </p>
-
+        <h3>机器人开发文档</h3>
+        <p>机器人相关内容（连接时序、事件字段、增量更新、坐标语义）已迁移到独立页面。</p>
+        <div class="cta-row">
+          <button id="goto-bot-dev" class="small inverted">前往机器人开发页</button>
+        </div>
       </section>
     </div>
 
@@ -257,6 +161,10 @@ BOT_SERVER=http://127.0.0.1:23333 BOT_ROOM=your-room BOT_TOKEN=your-auth-token B
 
       document.getElementById('back-home-btn').addEventListener('click', function () {
         location.href = '/';
+      });
+
+      document.getElementById('goto-bot-dev').addEventListener('click', function () {
+        location.href = '/develop/bot';
       });
 
       loadUser();
