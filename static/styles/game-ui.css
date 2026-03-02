@@ -61,6 +61,18 @@
   padding: 5px 8px;
   width: 88px;
 }
+#replay-mask-user-wrap {
+  color: black;
+  margin-top: 4px;
+  padding: 5px 10px 5px 18px;
+}
+#replay-mask-user {
+  min-height: 34px;
+  max-width: 240px;
+  margin-left: 4px;
+  font-size: 14px;
+  padding: 5px 8px;
+}
 
 #replay-bottom {
   bottom: 0;

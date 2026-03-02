@@ -167,6 +167,30 @@ function decodeReplayBinary(buffer) {
     };
   }
 
+  function readReplayMeta() {
+    if (offset >= view.byteLength) {
+      return null;
+    }
+    var hasMeta = readU8();
+    if (hasMeta == 0) {
+      return null;
+    }
+    if (hasMeta != 1) {
+      throw new Error('回放元数据损坏');
+    }
+    var count = readU16();
+    var playerNames = new Array(count);
+    var playerTeams = new Array(count);
+    for (var i = 0; i < count; i++) {
+      playerNames[i] = readString();
+      playerTeams[i] = readU8();
+    }
+    return {
+      player_names: playerNames,
+      player_teams: playerTeams,
+    };
+  }
+
   for (var i = 0; i < replay_binary_magic.length; i++) {
     if (readU8() != replay_binary_magic[i]) {
       throw new Error('回放格式不支持');
@@ -184,10 +208,12 @@ function decodeReplayBinary(buffer) {
       backward: readPatchPayload(),
     };
   }
+  var meta = readReplayMeta();
   return {
     n: n,
     m: m,
     initial: initial,
     patches: patches,
+    meta: meta || undefined,
   };
 }
