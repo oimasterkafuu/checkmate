@@ -7,7 +7,6 @@
 import sys
 import traceback
 import logbook
-import os
 import queue
 import threading
 import time
@@ -55,15 +54,6 @@ class GeneralsClientHost(object):
         self._privateRoomID = privateRoomID
         self._public_server = public_server
 
-        idle_exit_seconds_raw = os.environ.get('BOT_IDLE_EXIT_SECONDS', '600')
-        try:
-            self._idle_exit_seconds = max(30.0, float(idle_exit_seconds_raw))
-        except (TypeError, ValueError):
-            logbook.info(
-                f"Invalid BOT_IDLE_EXIT_SECONDS='{idle_exit_seconds_raw}', falling back to 600 seconds.",
-            )
-            self._idle_exit_seconds = 600.0
-
         self._running = True
 
     def run(self, additional_thread_methods: list):
@@ -91,10 +81,6 @@ class GeneralsClientHost(object):
 
             if elapsed > 30 and not gameThread.is_alive():
                 logbook.info(f'gameThread is dead. BREAKING OUT OF _running LOOP BECAUSE {elapsed:.2f} seconds elapsed...?')
-                self._running = False
-
-            if elapsed > 1800:
-                logbook.info(f'BREAKING OUT OF _running LOOP BECAUSE {elapsed:.2f} seconds elapsed...?')
                 self._running = False
 
         numLivingThreads = 0
@@ -213,17 +199,6 @@ class GeneralsClientHost(object):
                 logbook.info('no update received after 1s of waiting...?')
                 if self._game and self._game.terminated:
                     logbook.info('GAME WAS TERMINATED, TERMING UPDATE LOOP TOO')
-                    break
-
-                idleTime = time.perf_counter() - lastUpd
-                if idleTime > self._idle_exit_seconds:
-                    logbook.info(
-                        f'Moves thread idle for {idleTime:.1f}s '
-                        f'(threshold {self._idle_exit_seconds:.1f}s), terminating bot process for restart.',
-                    )
-                    self._running = False
-                    if self._game:
-                        self._game._terminate()
                     break
 
             except:
