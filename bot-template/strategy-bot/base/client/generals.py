@@ -554,7 +554,13 @@ class GeneralsClient(object):
             self._pending_updates.append(dict(payload))
             return
 
-        turn = int(payload.get('turn') or -1)
+        turn_raw = payload.get('turn')
+        if turn_raw is None:
+            return
+        try:
+            turn = int(turn_raw)
+        except Exception:
+            return
         if turn < 0:
             return
         if turn == self._last_turn:
