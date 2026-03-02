@@ -2,36 +2,30 @@ body {
   overflow: hidden;
 }
 
-#room-top-left {
+#tutorial-top-right {
   display: flex;
   align-items: center;
   gap: 6px;
   position: fixed;
   top: 12px;
-  left: 12px;
-  z-index: 30;
-}
-
-#account-badge {
-  position: fixed;
-  top: 12px;
   right: 12px;
   z-index: 30;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  padding: 6px 10px;
-  font-size: 13px;
 }
 
-#account-name {
+#tutorial-top-right #account-name {
+  display: inline-block;
+  padding: 6px 8px;
+  font-size: 13px;
+  opacity: 0.78;
   font-family: Quicksand-Bold, HYMaQiDuo-Bold;
 }
 
 #tutorial-step-banner {
   position: fixed;
   top: 12px;
-  left: 236px;
-  right: 12px;
+  left: 50%;
+  width: min(780px, calc(100vw - 340px));
+  transform: translateX(-50%);
   z-index: 28;
   padding: 8px 12px;
 }
@@ -67,68 +61,12 @@ body {
 
 #turn-counter {
   display: block;
+  top: 66px;
+  z-index: 26;
 }
 
 #game-leaderboard {
-  display: table;
-}
-
-#chat {
-  display: block;
-}
-
-#chat-messages-container {
-  cursor: default;
-  max-height: 260px;
-}
-
-#chat-messages-container.minimized {
-  max-height: 260px;
-  width: 400px;
-  opacity: 1;
-}
-
-#chatroom-input {
-  cursor: default;
-}
-
-.tutorial-chat-block {
-  margin: 0 0 9px 0;
-}
-
-.tutorial-chat-title {
-  margin: 0;
-  font-size: 13px;
-  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
-  color: #c8ffff;
-}
-
-.tutorial-chat-text {
-  margin: 3px 0 0 0;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-#tutorial-queue-list {
-  margin: 3px 0 0 16px;
-  padding: 0;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-#tutorial-queue-list li {
-  margin-bottom: 3px;
-}
-
-#tutorial-bottom-right {
-  position: fixed;
-  right: 10px;
-  bottom: 10px;
-  z-index: 30;
-}
-
-#tutorial-bottom-right button {
-  margin: 2px;
+  display: none;
 }
 
 #map {
@@ -159,60 +97,32 @@ body {
   }
 }
 
-.tutorial-arrow {
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  font-size: 11px;
-  line-height: 1;
-  color: #ffef99;
-  text-shadow: 0 0 2px black;
-}
-
 @media (max-width: 1000px) {
   #tutorial-step-banner {
-    top: 62px;
-    left: 12px;
-    right: 12px;
-  }
-
-  #account-badge {
-    top: 58px;
-  }
-
-  #game-leaderboard {
-    top: 136px;
-  }
-
-  #turn-counter {
-    top: 136px;
+    width: min(740px, calc(100vw - 30px));
   }
 }
 
 @media (max-width: 640px) {
-  #account-badge {
-    position: fixed;
+  #tutorial-top-right {
     right: 8px;
     top: 8px;
-    font-size: 12px;
-    padding: 4px 7px;
-  }
-
-  #room-top-left {
-    top: 8px;
-    left: 8px;
     gap: 4px;
   }
 
-  #room-top-left button {
+  #tutorial-top-right #account-name {
+    font-size: 12px;
+    padding: 4px 6px;
+  }
+
+  #tutorial-top-right button {
     font-size: 13px;
     padding: 5px 10px;
   }
 
   #tutorial-step-banner {
-    top: 52px;
-    left: 8px;
-    right: 8px;
+    width: min(520px, calc(100vw - 16px));
+    top: 50px;
     padding: 6px 8px;
   }
 
@@ -224,21 +134,5 @@ body {
   #tutorial-step-hint,
   #tutorial-step-progress {
     font-size: 11px;
-  }
-
-  #chat-messages-container,
-  #chat-messages-container.minimized {
-    width: min(92vw, 360px);
-    max-height: 220px;
-  }
-
-  #tutorial-bottom-right {
-    right: 8px;
-    bottom: 8px;
-  }
-
-  #tutorial-bottom-right button {
-    font-size: 12px;
-    padding: 5px 10px;
   }
 }

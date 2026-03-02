@@ -21,12 +21,9 @@
       <tbody></tbody>
     </table>
 
-    <div id="room-top-left">
+    <div id="tutorial-top-right">
       <button id="room-home-btn" class="small">返回首页</button>
       <button id="tutorial-reset-btn" class="small">重置教程</button>
-    </div>
-
-    <div id="account-badge">
       <span id="account-name"></span>
     </div>
 
@@ -35,32 +32,6 @@
       <p id="tutorial-step-title"></p>
       <p id="tutorial-step-body"></p>
       <p id="tutorial-step-hint"></p>
-    </div>
-
-    <div id="chat">
-      <div id="chat-messages-container">
-        <div class="tutorial-chat-block">
-          <p class="tutorial-chat-title">规则速记</p>
-          <p class="tutorial-chat-text">
-            攻击从已选中格向相邻格推进，默认派出 <b>当前兵力 - 1</b>，出发格会至少留下 1。
-            结算按相减进行：进攻兵力大于守军则占领，否则只削减守军。
-          </p>
-        </div>
-        <div class="tutorial-chat-block">
-          <p class="tutorial-chat-title">当前队列</p>
-          <ol id="tutorial-queue-list"></ol>
-        </div>
-        <div class="tutorial-chat-block" style="margin-bottom: 0">
-          <p class="tutorial-chat-title">教程状态</p>
-          <p id="tutorial-status-text" class="tutorial-chat-text"></p>
-        </div>
-      </div>
-      <input type="text" id="chatroom-input" readonly value="教程模式：不会发送聊天消息。" />
-    </div>
-
-    <div id="tutorial-bottom-right">
-      <button id="tutorial-clear-queue-btn" class="small">清空队列 (Q)</button>
-      <button id="tutorial-pop-queue-btn" class="small">撤销一步 (E)</button>
     </div>
 
     <script src="/tutorial.js"></script>

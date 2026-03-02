@@ -27,6 +27,8 @@
     { x: 0, y: -1, key: ['a', 'arrowleft'], arrow: '←' },
     { x: 0, y: 1, key: ['d', 'arrowright'], arrow: '→' },
   ];
+  const DIRE_CHARS = ['↑', '↓', '←', '→'];
+  const DIRE_CLASSES = ['arrow_u', 'arrow_d', 'arrow_l', 'arrow_r'];
 
   const STEP_LIST = [
     {
@@ -60,13 +62,10 @@
       targets: [POS.firstMove],
     },
     {
-      title: '操作队列',
-      body: '继续连续下两步指令，体验“操作队列”。队列会按顺序，每回合执行 1 步。',
-      hint: '目标：让队列长度达到 2。可用 Q 清空、E 撤销。',
-      targets: [
-        [4, 4],
-        [4, 5],
-      ],
+      title: '继续推进兵线',
+      body: '继续把兵力向右推进到下一个目标格。',
+      hint: '目标：占领高亮目标格。',
+      targets: [[4, 5]],
     },
     {
       title: '探索迷雾与障碍',
@@ -106,7 +105,7 @@
     },
     {
       title: '教程完成',
-      body: '你已完成核心流程：拖图、缩放、队列推进、探图、夺城、斩首。',
+      body: '你已完成核心流程：拖图、缩放、探图、夺城、斩首。',
       hint: '可点击“重置教程”再练一次，然后返回首页进入实战。',
       targets: [],
     },
@@ -264,10 +263,7 @@
     return { code: 200, army: 0 };
   }
 
-  function encodeHiddenTile(tile, discovered) {
-    if (!discovered) {
-      return { code: 202, army: 0 };
-    }
+  function encodeHiddenTile(tile) {
     if (tile.terrain === 'mountain' || tile.terrain === 'city') {
       return { code: 203, army: 0 };
     }
@@ -286,7 +282,7 @@
     if (visible) {
       return encodeVisibleTile(tile);
     }
-    return encodeHiddenTile(tile, state.discovered[x][y]);
+    return encodeHiddenTile(tile);
   }
 
   function refreshVisibility() {
@@ -327,28 +323,25 @@
     return set;
   }
 
-  function getQueueArrowMap() {
-    const map = new Map();
+  function buildQueueRouteFlags() {
+    const flags = new Array(4);
+    for (let d = 0; d < 4; d += 1) {
+      flags[d] = createMatrix(BOARD_ROWS, BOARD_COLS, function () {
+        return false;
+      });
+    }
     for (let i = 0; i < state.queue.length; i += 1) {
       const cmd = state.queue[i];
-      const key = cmd.fromX + ',' + cmd.fromY;
       const dx = cmd.toX - cmd.fromX;
       const dy = cmd.toY - cmd.fromY;
-      let arrow = '•';
-      for (let j = 0; j < DIRECTIONS.length; j += 1) {
-        if (DIRECTIONS[j].x === dx && DIRECTIONS[j].y === dy) {
-          arrow = DIRECTIONS[j].arrow;
+      for (let d = 0; d < DIRECTIONS.length; d += 1) {
+        if (DIRECTIONS[d].x === dx && DIRECTIONS[d].y === dy) {
+          flags[d][cmd.fromX][cmd.fromY] = true;
           break;
         }
       }
-      const prev = map.get(key) || '';
-      if (prev.length >= 3) {
-        map.set(key, prev);
-      } else {
-        map.set(key, prev + arrow);
-      }
     }
-    return map;
+    return flags;
   }
 
   function buildCellClass(code) {
@@ -390,12 +383,22 @@
       return false;
     }
     const from = tileAt(state.selected.x, state.selected.y);
-    return Boolean(from) && from.owner === PLAYER_ID && from.army > 1;
+    if (!from) {
+      return false;
+    }
+    const ownSelected = from.owner === PLAYER_ID;
+    if (!ownSelected && state.queue.length === 0) {
+      return false;
+    }
+    if (state.queue.length === 0 && from.army <= 1) {
+      return false;
+    }
+    return true;
   }
 
   function renderMap() {
     const targets = getStepTargets(state.currentStep);
-    const queueArrowMap = getQueueArrowMap();
+    const routeFlags = buildQueueRouteFlags();
     let html = '<table><tbody>';
     for (let x = 0; x < BOARD_ROWS; x += 1) {
       html += '<tr>';
@@ -421,9 +424,10 @@
           }
         }
 
-        const arrows = queueArrowMap.get(x + ',' + y);
-        if (arrows) {
-          txt += '<div class="tutorial-arrow">' + arrows + '</div>';
+        for (let d = 0; d < 4; d += 1) {
+          if (routeFlags[d][x][y]) {
+            txt += '<div class="' + DIRE_CLASSES[d] + '">' + DIRE_CHARS[d] + '</div>';
+          }
         }
 
         html += '<td data-x="' + x + '" data-y="' + y + '" class="' + cls + '">' + txt + '</td>';
@@ -436,28 +440,6 @@
     dom.map.style.setProperty('--pan-x', state.panX + 'px');
     dom.map.style.setProperty('--pan-y', state.panY + 'px');
     dom.map.style.setProperty('--zoom', String(state.zoom));
-  }
-
-  function renderQueueList() {
-    if (!state.queue.length) {
-      dom.queueList.innerHTML = '<li>（空）</li>';
-      return;
-    }
-    let html = '';
-    for (let i = 0; i < state.queue.length; i += 1) {
-      const cmd = state.queue[i];
-      html +=
-        '<li>(' +
-        cmd.fromX +
-        ',' +
-        cmd.fromY +
-        ') → (' +
-        cmd.toX +
-        ',' +
-        cmd.toY +
-        ')</li>';
-    }
-    dom.queueList.innerHTML = html;
   }
 
   function formatTurn(turn) {
@@ -504,25 +486,7 @@
   }
 
   function renderHud() {
-    const selectedText = state.selected.x >= 0 ? '(' + state.selected.x + ',' + state.selected.y + ')' : '无';
-    const pauseText = state.paused ? '暂停' : '运行';
-
-    dom.turnCounter.innerHTML =
-      '回合 ' + formatTurn(state.turn) + '<br />' + '队列 ' + state.queue.length + '<br />' + '选中 ' + selectedText;
-
-    const statusSegments = ['状态：' + pauseText];
-    if (state.paused && state.pauseReason) {
-      statusSegments.push(state.pauseReason);
-    } else {
-      statusSegments.push('教学进行中：每回合执行 1 条队列指令。');
-    }
-    dom.statusText.textContent = statusSegments.join(' · ');
-
-    if (state.paused && state.pauseReason) {
-      dom.chatInput.value = '教程模式：' + state.pauseReason;
-    } else {
-      dom.chatInput.value = '教程模式：不会发送聊天消息。';
-    }
+    dom.turnCounter.textContent = '回合 ' + formatTurn(state.turn);
   }
 
   function renderStepPanel() {
@@ -536,7 +500,6 @@
   function renderAll() {
     renderStepPanel();
     renderMap();
-    renderQueueList();
     renderLeaderboard();
     renderHud();
   }
@@ -775,8 +738,7 @@
         }
         break;
       case 5:
-        if (state.queue.length >= 2) {
-          setPaused(false, '');
+        if (isOwned([4, 5])) {
           nextStep();
         }
         break;
@@ -833,8 +795,6 @@
     } else if (index === 2) {
       startCrownBoost();
       return;
-    } else if (index === 5) {
-      setPaused(true, '教学暂停：先体验两步操作队列。');
     } else if (index === STEP_LIST.length - 1) {
       setPaused(true, '教程结束。');
       state.running = false;
@@ -1066,14 +1026,6 @@
       resetTutorial();
     });
 
-    dom.clearQueueBtn.addEventListener('click', function () {
-      clearQueue();
-    });
-
-    dom.popQueueBtn.addEventListener('click', function () {
-      popQueue();
-    });
-
     dom.map.addEventListener('pointerdown', onPointerDown);
     dom.mapBack.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('pointermove', onPointerMove);
@@ -1119,11 +1071,6 @@
     dom.stepTitle = document.getElementById('tutorial-step-title');
     dom.stepBody = document.getElementById('tutorial-step-body');
     dom.stepHint = document.getElementById('tutorial-step-hint');
-    dom.queueList = document.getElementById('tutorial-queue-list');
-    dom.statusText = document.getElementById('tutorial-status-text');
-    dom.chatInput = document.getElementById('chatroom-input');
-    dom.clearQueueBtn = document.getElementById('tutorial-clear-queue-btn');
-    dom.popQueueBtn = document.getElementById('tutorial-pop-queue-btn');
     dom.homeBtn = document.getElementById('room-home-btn');
     dom.resetBtn = document.getElementById('tutorial-reset-btn');
     dom.accountName = document.getElementById('account-name');
