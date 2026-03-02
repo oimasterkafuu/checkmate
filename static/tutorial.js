@@ -168,6 +168,8 @@
         startPanX: 0,
         startPanY: 0,
         moved: false,
+        downCell: null,
+        downOnBack: false,
       },
     };
   }
@@ -445,8 +447,7 @@
     for (let i = 0; i < state.queue.length; i += 1) {
       const cmd = state.queue[i];
       html +=
-        '<li>' +
-        '(' +
+        '<li>(' +
         cmd.fromX +
         ',' +
         cmd.fromY +
@@ -454,8 +455,7 @@
         cmd.toX +
         ',' +
         cmd.toY +
-        ')' +
-        '</li>';
+        ')</li>';
     }
     dom.queueList.innerHTML = html;
   }
@@ -464,24 +464,65 @@
     return Math.floor(turn / 2) + (turn % 2 === 1 ? '.' : '');
   }
 
-  function renderHud() {
-    dom.chipPaused.textContent = state.paused ? '状态：暂停' : '状态：运行';
-    dom.chipPaused.className = 'tutorial-chip ' + (state.paused ? 'paused' : 'running');
-    dom.chipTurn.textContent = '回合：' + formatTurn(state.turn);
-    dom.chipQueue.textContent = '队列：' + state.queue.length;
-    if (state.selected.x >= 0 && state.selected.y >= 0) {
-      dom.chipSelection.textContent = '选中：(' + state.selected.x + ',' + state.selected.y + ')';
-    } else {
-      dom.chipSelection.textContent = '选中：无';
+  function collectStats(owner) {
+    let army = 0;
+    let land = 0;
+    for (let x = 0; x < BOARD_ROWS; x += 1) {
+      for (let y = 0; y < BOARD_COLS; y += 1) {
+        const tile = tileAt(x, y);
+        if (!tile || tile.owner !== owner) {
+          continue;
+        }
+        army += Math.max(0, tile.army);
+        land += 1;
+      }
     }
+    return { army: army, land: land };
+  }
 
-    let overlay = '';
-    if (state.paused) {
-      overlay = state.pauseReason || '游戏已暂停';
+  function renderLeaderboard() {
+    const p1 = collectStats(PLAYER_ID);
+    const p2 = collectStats(ENEMY_ID);
+    let html = '<tr><td>队伍</td><td>玩家</td><td>兵力</td><td>领土</td></tr>';
+    html +=
+      '<tr class="' +
+      (p1.land <= 0 ? 'dead' : '') +
+      '"><td>1</td><td class="leaderboard-name c1">你（教程）</td><td>' +
+      p1.army +
+      '</td><td>' +
+      p1.land +
+      '</td></tr>';
+    html +=
+      '<tr class="' +
+      (p2.land <= 0 ? 'dead' : '') +
+      '"><td>2</td><td class="leaderboard-name c2">敌方</td><td>' +
+      p2.army +
+      '</td><td>' +
+      p2.land +
+      '</td></tr>';
+    dom.leaderboard.innerHTML = html;
+  }
+
+  function renderHud() {
+    const selectedText = state.selected.x >= 0 ? '(' + state.selected.x + ',' + state.selected.y + ')' : '无';
+    const pauseText = state.paused ? '暂停' : '运行';
+
+    dom.turnCounter.innerHTML =
+      '回合 ' + formatTurn(state.turn) + '<br />' + '队列 ' + state.queue.length + '<br />' + '选中 ' + selectedText;
+
+    const statusSegments = ['状态：' + pauseText];
+    if (state.paused && state.pauseReason) {
+      statusSegments.push(state.pauseReason);
     } else {
-      overlay = '教学进行中：每回合执行 1 条队列指令。';
+      statusSegments.push('教学进行中：每回合执行 1 条队列指令。');
     }
-    dom.mapOverlay.textContent = overlay;
+    dom.statusText.textContent = statusSegments.join(' · ');
+
+    if (state.paused && state.pauseReason) {
+      dom.chatInput.value = '教程模式：' + state.pauseReason;
+    } else {
+      dom.chatInput.value = '教程模式：不会发送聊天消息。';
+    }
   }
 
   function renderStepPanel() {
@@ -496,6 +537,7 @@
     renderStepPanel();
     renderMap();
     renderQueueList();
+    renderLeaderboard();
     renderHud();
   }
 
@@ -511,7 +553,7 @@
   function clearQueue() {
     state.queue = [];
     renderAll();
-    evaluateStepProgress('queue');
+    evaluateStepProgress();
   }
 
   function popQueue() {
@@ -524,7 +566,7 @@
       state.selected.y = cmd.fromY;
     }
     renderAll();
-    evaluateStepProgress('queue');
+    evaluateStepProgress();
   }
 
   function applyCaptureIfEnemyDefeated() {
@@ -651,7 +693,7 @@
     applySwampDrain();
     refreshVisibility();
     renderAll();
-    evaluateStepProgress('tick');
+    evaluateStepProgress();
   }
 
   function startTickLoop() {
@@ -861,8 +903,21 @@
     return { x: x, y: y };
   }
 
+  function isMapTarget(target) {
+    if (!target) {
+      return false;
+    }
+    if (target === dom.mapBack) {
+      return true;
+    }
+    if (typeof target.closest === 'function' && target.closest('#map')) {
+      return true;
+    }
+    return false;
+  }
+
   function onPointerDown(event) {
-    if (event.button !== 0) {
+    if (event.button !== 0 || !isMapTarget(event.target)) {
       return;
     }
     state.pointer.active = true;
@@ -872,9 +927,16 @@
     state.pointer.startPanX = state.panX;
     state.pointer.startPanY = state.panY;
     state.pointer.moved = false;
+    state.pointer.downCell = findCellFromEventTarget(event.target);
+    state.pointer.downOnBack = event.target === dom.mapBack;
     dom.map.classList.add('dragging');
-    if (typeof dom.mapStage.setPointerCapture === 'function') {
-      dom.mapStage.setPointerCapture(event.pointerId);
+
+    if (typeof event.target.setPointerCapture === 'function') {
+      try {
+        event.target.setPointerCapture(event.pointerId);
+      } catch {
+        // noop
+      }
     }
   }
 
@@ -884,9 +946,11 @@
     }
     const dx = event.clientX - state.pointer.startX;
     const dy = event.clientY - state.pointer.startY;
+
     if (Math.abs(dx) > CLICK_TOLERANCE || Math.abs(dy) > CLICK_TOLERANCE) {
       state.pointer.moved = true;
     }
+
     state.panX = state.pointer.startPanX + dx;
     state.panY = state.pointer.startPanY + dy;
     dom.map.style.setProperty('--pan-x', state.panX + 'px');
@@ -904,34 +968,39 @@
     }
 
     const moved = state.pointer.moved;
+    const downCell = state.pointer.downCell;
+    const downOnBack = state.pointer.downOnBack;
+
     state.pointer.active = false;
     state.pointer.pointerId = -1;
+    state.pointer.downCell = null;
+    state.pointer.downOnBack = false;
+
     dom.map.classList.remove('dragging');
 
-    if (typeof dom.mapStage.releasePointerCapture === 'function') {
-      try {
-        dom.mapStage.releasePointerCapture(event.pointerId);
-      } catch {
-        // noop
-      }
-    }
-
     if (!moved) {
-      const cell = findCellFromEventTarget(event.target);
-      if (cell) {
-        handleTileClick(cell.x, cell.y);
+      if (downCell) {
+        handleTileClick(downCell.x, downCell.y);
+      } else if (downOnBack && state.running) {
+        state.selected = { x: -1, y: -1 };
+        renderAll();
       }
     }
   }
 
   function onWheel(event) {
+    if (!isMapTarget(event.target)) {
+      return;
+    }
     event.preventDefault();
+
     const oldZoom = state.zoom;
     if (event.deltaY > 0) {
       state.zoom = Math.max(MIN_ZOOM, state.zoom - 0.08);
     } else {
       state.zoom = Math.min(MAX_ZOOM, state.zoom + 0.08);
     }
+
     if (oldZoom !== state.zoom) {
       dom.map.style.setProperty('--zoom', String(state.zoom));
       if (!state.didZoom) {
@@ -989,7 +1058,7 @@
   }
 
   function bindEvents() {
-    dom.backBtn.addEventListener('click', function () {
+    dom.homeBtn.addEventListener('click', function () {
       location.href = '/';
     });
 
@@ -1005,11 +1074,14 @@
       popQueue();
     });
 
-    dom.mapStage.addEventListener('pointerdown', onPointerDown);
-    dom.mapStage.addEventListener('pointermove', onPointerMove);
-    dom.mapStage.addEventListener('pointerup', onPointerUp);
-    dom.mapStage.addEventListener('pointercancel', onPointerUp);
-    dom.mapStage.addEventListener('wheel', onWheel, { passive: false });
+    dom.map.addEventListener('pointerdown', onPointerDown);
+    dom.mapBack.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
+
+    dom.map.addEventListener('wheel', onWheel, { passive: false });
+    dom.mapBack.addEventListener('wheel', onWheel, { passive: false });
 
     document.addEventListener('keydown', onKeyDown);
   }
@@ -1039,21 +1111,20 @@
   }
 
   function cacheDom() {
-    dom.map = document.getElementById('tutorial-map');
-    dom.mapStage = document.getElementById('tutorial-map-stage');
-    dom.mapOverlay = document.getElementById('tutorial-map-overlay');
+    dom.map = document.getElementById('map');
+    dom.mapBack = document.getElementById('map_back');
+    dom.turnCounter = document.getElementById('turn-counter');
+    dom.leaderboard = document.getElementById('game-leaderboard');
     dom.stepProgress = document.getElementById('tutorial-step-progress');
     dom.stepTitle = document.getElementById('tutorial-step-title');
     dom.stepBody = document.getElementById('tutorial-step-body');
     dom.stepHint = document.getElementById('tutorial-step-hint');
     dom.queueList = document.getElementById('tutorial-queue-list');
-    dom.chipPaused = document.getElementById('tutorial-chip-paused');
-    dom.chipTurn = document.getElementById('tutorial-chip-turn');
-    dom.chipQueue = document.getElementById('tutorial-chip-queue');
-    dom.chipSelection = document.getElementById('tutorial-chip-selection');
+    dom.statusText = document.getElementById('tutorial-status-text');
+    dom.chatInput = document.getElementById('chatroom-input');
     dom.clearQueueBtn = document.getElementById('tutorial-clear-queue-btn');
     dom.popQueueBtn = document.getElementById('tutorial-pop-queue-btn');
-    dom.backBtn = document.getElementById('tutorial-back-btn');
+    dom.homeBtn = document.getElementById('room-home-btn');
     dom.resetBtn = document.getElementById('tutorial-reset-btn');
     dom.accountName = document.getElementById('account-name');
   }

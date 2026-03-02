@@ -11,70 +11,56 @@
   </head>
 
   <body>
-    <div id="tutorial-root">
-      <aside id="tutorial-panel">
-        <div id="tutorial-header">
-          <h1>互动教程</h1>
-          <div id="tutorial-step-progress"></div>
+    <div id="game">
+      <div id="map"></div>
+      <div id="map_back"></div>
+    </div>
+
+    <div id="turn-counter"></div>
+    <table id="game-leaderboard">
+      <tbody></tbody>
+    </table>
+
+    <div id="room-top-left">
+      <button id="room-home-btn" class="small">返回首页</button>
+      <button id="tutorial-reset-btn" class="small">重置教程</button>
+    </div>
+
+    <div id="account-badge">
+      <span id="account-name"></span>
+    </div>
+
+    <div id="tutorial-step-banner" class="background">
+      <p id="tutorial-step-progress"></p>
+      <p id="tutorial-step-title"></p>
+      <p id="tutorial-step-body"></p>
+      <p id="tutorial-step-hint"></p>
+    </div>
+
+    <div id="chat">
+      <div id="chat-messages-container">
+        <div class="tutorial-chat-block">
+          <p class="tutorial-chat-title">规则速记</p>
+          <p class="tutorial-chat-text">
+            攻击从已选中格向相邻格推进，默认派出 <b>当前兵力 - 1</b>，出发格会至少留下 1。
+            结算按相减进行：进攻兵力大于守军则占领，否则只削减守军。
+          </p>
         </div>
-
-        <section class="tutorial-card" style="margin-top: 0">
-          <h3 id="tutorial-step-title"></h3>
-          <p id="tutorial-step-body"></p>
-          <p id="tutorial-step-hint"></p>
-        </section>
-
-        <section class="tutorial-card">
-          <h3>规则速记</h3>
-          <p>
-            <b>攻击</b>：从选中格向相邻格推进兵力。默认推进 <code>当前兵力 - 1</code>，原格至少保留 1。
-          </p>
-          <p><b>结算</b>：进攻兵力大于守军则占领；否则仅削减守军，不会占领。</p>
-          <p>
-            <b>操作队列</b>：你可以连续下指令，系统每回合执行 1 步。<span class="tutorial-kbd">Q</span>
-            清空，<span class="tutorial-kbd">E</span> 撤销最后一步。
-          </p>
-        </section>
-
-        <section class="tutorial-card">
-          <h3>当前队列</h3>
+        <div class="tutorial-chat-block">
+          <p class="tutorial-chat-title">当前队列</p>
           <ol id="tutorial-queue-list"></ol>
-        </section>
-
-        <section class="tutorial-card">
-          <h3>操作提示</h3>
-          <p>地图拖动：按住鼠标左键</p>
-          <p>地图缩放：鼠标滚轮</p>
-          <p>方向移动：<span class="tutorial-kbd">W</span>/<span class="tutorial-kbd">A</span>/<span class="tutorial-kbd">S</span>/<span class="tutorial-kbd">D</span></p>
-          <p>取消选中：<span class="tutorial-kbd">Space</span></p>
-        </section>
-      </aside>
-
-      <section id="tutorial-stage">
-        <div id="tutorial-topbar">
-          <button id="tutorial-back-btn" class="small">返回首页</button>
-          <button id="tutorial-reset-btn" class="small">重置教程</button>
-          <div id="tutorial-user-wrap">
-            当前账号：<span id="account-name" style="font-family: Quicksand-Bold, HYMaQiDuo-Bold"></span>
-          </div>
         </div>
-
-        <div id="tutorial-map-stage">
-          <div id="tutorial-map-overlay"></div>
-          <div id="tutorial-map"></div>
+        <div class="tutorial-chat-block" style="margin-bottom: 0">
+          <p class="tutorial-chat-title">教程状态</p>
+          <p id="tutorial-status-text" class="tutorial-chat-text"></p>
         </div>
+      </div>
+      <input type="text" id="chatroom-input" readonly value="教程模式：不会发送聊天消息。" />
+    </div>
 
-        <div id="tutorial-hud">
-          <span id="tutorial-chip-paused" class="tutorial-chip"></span>
-          <span id="tutorial-chip-turn" class="tutorial-chip"></span>
-          <span id="tutorial-chip-queue" class="tutorial-chip"></span>
-          <span id="tutorial-chip-selection" class="tutorial-chip"></span>
-          <div id="tutorial-hud-right">
-            <button id="tutorial-clear-queue-btn" class="small">清空队列 (Q)</button>
-            <button id="tutorial-pop-queue-btn" class="small">撤销一步 (E)</button>
-          </div>
-        </div>
-      </section>
+    <div id="tutorial-bottom-right">
+      <button id="tutorial-clear-queue-btn" class="small">清空队列 (Q)</button>
+      <button id="tutorial-pop-queue-btn" class="small">撤销一步 (E)</button>
     </div>
 
     <script src="/tutorial.js"></script>

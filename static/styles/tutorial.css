@@ -2,170 +2,144 @@ body {
   overflow: hidden;
 }
 
-#tutorial-root {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 12px;
+#room-top-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 30;
 }
 
-#tutorial-panel {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.36);
-  box-shadow: 2px 2px teal;
-  padding: 14px;
-  overflow-y: auto;
+#account-badge {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 6px 10px;
+  font-size: 13px;
 }
 
-#tutorial-header {
-  margin-bottom: 12px;
-}
-
-#tutorial-header h1 {
-  margin: 0;
-  font-size: 28px;
+#account-name {
   font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+
+#tutorial-step-banner {
+  position: fixed;
+  top: 12px;
+  left: 236px;
+  right: 12px;
+  z-index: 28;
+  padding: 8px 12px;
+}
+
+#tutorial-step-banner p,
+#tutorial-step-banner b {
+  color: black;
+  margin: 0;
 }
 
 #tutorial-step-progress {
-  margin-top: 4px;
-  font-size: 12px;
-  opacity: 0.78;
+  font-size: 11px;
+  opacity: 0.65;
 }
 
 #tutorial-step-title {
-  margin: 0;
-  font-size: 19px;
+  margin-top: 2px !important;
+  font-size: 16px;
   font-family: Quicksand-Bold, HYMaQiDuo-Bold;
 }
 
-#tutorial-step-body,
-#tutorial-step-hint {
-  margin: 8px 0 0 0;
-  line-height: 1.65;
-  font-size: 14px;
-}
-
-#tutorial-step-hint {
-  opacity: 0.85;
-  color: #c7ffff;
-}
-
-.tutorial-card {
-  margin-top: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px;
-}
-
-.tutorial-card h3 {
-  margin: 0 0 8px 0;
-  font-size: 15px;
-  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
-}
-
-.tutorial-card p {
-  margin: 0 0 8px 0;
-  line-height: 1.6;
+#tutorial-step-body {
+  margin-top: 3px !important;
   font-size: 13px;
+  line-height: 1.45;
 }
 
-.tutorial-kbd {
-  display: inline-block;
-  min-width: 16px;
-  padding: 0 6px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
+#tutorial-step-hint {
+  margin-top: 2px !important;
   font-size: 12px;
-  line-height: 20px;
-  text-align: center;
-  color: #e7ffff;
+  opacity: 0.72;
+}
+
+#turn-counter {
+  display: block;
+}
+
+#game-leaderboard {
+  display: table;
+}
+
+#chat {
+  display: block;
+}
+
+#chat-messages-container {
+  cursor: default;
+  max-height: 260px;
+}
+
+#chat-messages-container.minimized {
+  max-height: 260px;
+  width: 400px;
+  opacity: 1;
+}
+
+#chatroom-input {
+  cursor: default;
+}
+
+.tutorial-chat-block {
+  margin: 0 0 9px 0;
+}
+
+.tutorial-chat-title {
+  margin: 0;
+  font-size: 13px;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+  color: #c8ffff;
+}
+
+.tutorial-chat-text {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 #tutorial-queue-list {
-  margin: 0;
-  padding-left: 18px;
-  line-height: 1.65;
+  margin: 3px 0 0 16px;
+  padding: 0;
   font-size: 13px;
+  line-height: 1.5;
 }
 
 #tutorial-queue-list li {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
-#tutorial-stage {
-  min-width: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 10px;
+#tutorial-bottom-right {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  z-index: 30;
 }
 
-#tutorial-topbar,
-#tutorial-hud {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.3);
-  box-shadow: 2px 2px teal;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+#tutorial-bottom-right button {
+  margin: 2px;
 }
 
-#tutorial-user-wrap {
-  margin-left: auto;
-  font-size: 13px;
-  opacity: 0.85;
-}
-
-#tutorial-map-stage {
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: radial-gradient(circle at 20% 20%, rgba(5, 28, 32, 0.7), rgba(10, 12, 16, 0.9));
-  box-shadow: 3px 3px teal;
-  overflow: hidden;
-}
-
-#tutorial-map-overlay {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  padding: 8px 12px;
-  font-size: 13px;
-  background: rgba(0, 0, 0, 0.45);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
-  z-index: 4;
-  pointer-events: none;
-}
-
-#tutorial-map {
-  position: absolute;
-  left: 50%;
-  top: 50%;
+#map {
   --pan-x: 0px;
   --pan-y: 0px;
   --zoom: 1;
   transform: translate(-50%, -50%) translate(var(--pan-x), var(--pan-y)) scale(var(--zoom));
-  transform-origin: center center;
-  z-index: 2;
 }
 
-#tutorial-map.dragging {
+#map.dragging {
   cursor: grabbing;
-}
-
-#tutorial-map table {
-  border-spacing: 0;
-}
-
-#tutorial-map td {
-  position: relative;
 }
 
 .tutorial-target {
@@ -195,72 +169,76 @@ body {
   text-shadow: 0 0 2px black;
 }
 
-.tutorial-chip {
-  font-size: 13px;
-  padding: 4px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.tutorial-chip.paused {
-  border-color: rgba(255, 120, 120, 0.45);
-  background: rgba(255, 80, 80, 0.2);
-}
-
-.tutorial-chip.running {
-  border-color: rgba(90, 230, 230, 0.45);
-  background: rgba(30, 120, 120, 0.2);
-}
-
-#tutorial-hud-right {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-#tutorial-map-tip {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-@media (max-width: 1080px) {
-  #tutorial-root {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+@media (max-width: 1000px) {
+  #tutorial-step-banner {
+    top: 62px;
+    left: 12px;
+    right: 12px;
   }
 
-  #tutorial-panel {
-    max-height: 44vh;
+  #account-badge {
+    top: 58px;
+  }
+
+  #game-leaderboard {
+    top: 136px;
+  }
+
+  #turn-counter {
+    top: 136px;
   }
 }
 
-@media (max-width: 760px) {
-  #tutorial-root {
-    padding: 8px;
-    gap: 8px;
+@media (max-width: 640px) {
+  #account-badge {
+    position: fixed;
+    right: 8px;
+    top: 8px;
+    font-size: 12px;
+    padding: 4px 7px;
   }
 
-  #tutorial-header h1 {
-    font-size: 23px;
+  #room-top-left {
+    top: 8px;
+    left: 8px;
+    gap: 4px;
+  }
+
+  #room-top-left button {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+
+  #tutorial-step-banner {
+    top: 52px;
+    left: 8px;
+    right: 8px;
+    padding: 6px 8px;
   }
 
   #tutorial-step-title {
-    font-size: 17px;
+    font-size: 14px;
   }
 
-  #tutorial-topbar,
-  #tutorial-hud {
-    padding: 8px;
+  #tutorial-step-body,
+  #tutorial-step-hint,
+  #tutorial-step-progress {
+    font-size: 11px;
   }
 
-  #tutorial-user-wrap {
-    width: 100%;
-    margin-left: 0;
+  #chat-messages-container,
+  #chat-messages-container.minimized {
+    width: min(92vw, 360px);
+    max-height: 220px;
   }
 
-  #tutorial-hud-right {
-    margin-left: 0;
-    width: 100%;
+  #tutorial-bottom-right {
+    right: 8px;
+    bottom: 8px;
+  }
+
+  #tutorial-bottom-right button {
+    font-size: 12px;
+    padding: 5px 10px;
   }
 }
