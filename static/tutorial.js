@@ -539,7 +539,7 @@
     evaluateStepProgress();
   }
 
-  function applyCaptureIfEnemyDefeated() {
+  function applyCaptureIfEnemyDefeated(crownX, crownY) {
     for (let x = 0; x < BOARD_ROWS; x += 1) {
       for (let y = 0; y < BOARD_COLS; y += 1) {
         const tile = tileAt(x, y);
@@ -553,6 +553,15 @@
         tile.owner = PLAYER_ID;
       }
     }
+
+    if (inBounds(crownX, crownY)) {
+      const capturedCrown = tileAt(crownX, crownY);
+      if (capturedCrown && capturedCrown.owner === PLAYER_ID) {
+        capturedCrown.terrain = 'city';
+        capturedCrown.army = Math.floor(capturedCrown.army / 2);
+      }
+    }
+
     state.enemyDefeated = true;
     state.queue = [];
   }
@@ -595,7 +604,7 @@
       to.owner = PLAYER_ID;
       to.army = capturedArmy;
       if (capturedEnemyCrown) {
-        applyCaptureIfEnemyDefeated();
+        applyCaptureIfEnemyDefeated(cmd.toX, cmd.toY);
       }
       return true;
     }
