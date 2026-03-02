@@ -493,6 +493,7 @@ const boot = async (): Promise<void> => {
   app.get('/develop/bot', async (_request, reply) => reply.sendFile('develop-bot.html'));
 
   app.get('/about', async (_request, reply) => reply.sendFile('about.html'));
+  app.get('/tutorial', async (_request, reply) => reply.sendFile('tutorial.html'));
 
   app.get('/games', async (_request, reply) => {
     let html = '';
