@@ -55,6 +55,15 @@ class GeneralsClientHost(object):
         self._privateRoomID = privateRoomID
         self._public_server = public_server
 
+        idle_exit_seconds_raw = os.environ.get('BOT_IDLE_EXIT_SECONDS', '600')
+        try:
+            self._idle_exit_seconds = max(30.0, float(idle_exit_seconds_raw))
+        except (TypeError, ValueError):
+            logbook.info(
+                f"Invalid BOT_IDLE_EXIT_SECONDS='{idle_exit_seconds_raw}', falling back to 600 seconds.",
+            )
+            self._idle_exit_seconds = 600.0
+
         self._running = True
 
     def run(self, additional_thread_methods: list):
@@ -206,13 +215,16 @@ class GeneralsClientHost(object):
                     logbook.info('GAME WAS TERMINATED, TERMING UPDATE LOOP TOO')
                     break
 
-                if time.perf_counter() - lastUpd > 60:
-                    if not self._game:
-                        logbook.info('Moves thread hasnt gotten anything in ages and theres no game client still')
-                        break
-                    if not self._game:
-                        logbook.info('Moves thread hasnt gotten anything in ages and theres no game client still')
-                        break
+                idleTime = time.perf_counter() - lastUpd
+                if idleTime > self._idle_exit_seconds:
+                    logbook.info(
+                        f'Moves thread idle for {idleTime:.1f}s '
+                        f'(threshold {self._idle_exit_seconds:.1f}s), terminating bot process for restart.',
+                    )
+                    self._running = False
+                    if self._game:
+                        self._game._terminate()
+                    break
 
             except:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
