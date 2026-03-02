@@ -421,7 +421,7 @@
 
       <section class="about-panel">
         <h3>地图示例（4 人）</h3>
-        <p>下方示例由服务器实时生成，展示“标准地图”“峡谷回廊”“群岛要塞”的地形差异。</p>
+        <p>下方示例由服务器实时生成，展示“标准地图”“峡谷回廊”“群岛要塞”“地中海”的地形差异。</p>
         <div class="map-example-toolbar">
           <button id="refresh-map-examples-btn" class="small">刷新示例</button>
           <span id="map-example-status" class="map-example-status"></span>
@@ -437,6 +437,7 @@
       function mapModeLabel(mapMode) {
         if (mapMode === 'maze') return '峡谷回廊';
         if (mapMode === 'archipelago') return '群岛要塞';
+        if (mapMode === 'mediterranean') return '地中海';
         return '标准地图';
       }
 

@@ -60,6 +60,7 @@ function getMapModeCode() {
   var mapMode = getTabVal('map-mode');
   if (mapMode == '峡谷回廊') return 'maze';
   if (mapMode == '群岛要塞') return 'archipelago';
+  if (mapMode == '地中海') return 'mediterranean';
   return 'random';
 }
 
@@ -70,6 +71,10 @@ function setMapModeByCode(code) {
   }
   if (code == 'archipelago') {
     setTabVal('map-mode', '群岛要塞');
+    return;
+  }
+  if (code == 'mediterranean') {
+    setTabVal('map-mode', '地中海');
     return;
   }
   setTabVal('map-mode', '标准地图');
