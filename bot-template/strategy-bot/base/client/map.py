@@ -911,7 +911,8 @@ AttributeError: 'Map' object has no attribute 'grid'
             tile_army: int,
             is_city: bool = False,
             is_general: bool = False,
-            is_desert: bool = False):
+            is_desert: bool = False,
+            is_swamp: bool = False):
         """
         Call this AFTER calling map.update_turn.
         ONLY call this ONCE per turn per tile, or the first deltas will be replaced by the final delta.
@@ -937,6 +938,8 @@ AttributeError: 'Map' object has no attribute 'grid'
 
         if curTile.isCity and tile_type >= TILE_EMPTY and not is_city:
             curTile.isCity = False
+        if is_swamp:
+            curTile.isSwamp = True
         if is_desert:
             curTile.isDesert = True
 
@@ -3116,6 +3119,7 @@ class Map(MapBase):
         self._map_private = []
         self._cities_private = []
         self._deserts_private = []
+        self._swamps_private = []
 
         # First Game Data, sets up all the private server-array-style-tile-caches
         self._apply_server_patch(data)
@@ -3189,8 +3193,9 @@ class Map(MapBase):
             isCity = idx in self._visible_cities
             isGeneral = idx in self._visible_generals
             isDesert = idx in self._visible_deserts
+            isSwamp = idx in self._visible_swamps
 
-            self.update_visible_tile(x, y, tile_type, army_count, isCity, isGeneral, isDesert)
+            self.update_visible_tile(x, y, tile_type, army_count, isCity, isGeneral, isDesert, isSwamp)
 
         if self.has_misty_veil and self.has_watchtower:
             # update understanding of visibles
@@ -3233,6 +3238,8 @@ class Map(MapBase):
         _apply_diff(self._map_private, data['map_diff'])
         _apply_diff(self._cities_private, data['cities_diff'])
         _apply_diff(self._deserts_private, data['deserts_diff'])
+        if 'swamps_diff' in data:
+            _apply_diff(self._swamps_private, data['swamps_diff'])
 
         # Get Number Rows + Columns
         self.rows, self.cols = self._map_private[1], self._map_private[0]
@@ -3251,6 +3258,7 @@ class Map(MapBase):
         self._visible_generals = set(data['generals'])
 
         self._visible_deserts = set(self._deserts_private)
+        self._visible_swamps = set(self._swamps_private)
 
 
 def new_map_grid(map, initialValueXYFunc):

@@ -197,6 +197,7 @@ class _CheckmateFrameTranslator:
             'map_diff': self._to_full_replace_diff(map_private),
             'cities_diff': self._to_full_replace_diff(cities),
             'deserts_diff': self._to_full_replace_diff([]),
+            'swamps_diff': self._to_full_replace_diff(swamps),
             'generals': generals,
             'scores': scores,
             'stars': [0 for _ in range(len(player_ids))],
