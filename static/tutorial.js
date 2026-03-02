@@ -5,12 +5,11 @@
   const ENEMY_ID = 2;
   const SCALE_CLASS = 3;
   const TICK_MS = 650;
-  const MIN_ZOOM = 0.45;
+  const MIN_ZOOM = 1;
   const MAX_ZOOM = 2.25;
   const CLICK_TOLERANCE = 6;
   const PAN_TRIGGER_PIXELS = 18;
-  const CENTER_THRESHOLD_PX = 44;
-  const TARGET_TUTORIAL_ZOOM = 0.8;
+  const TARGET_TUTORIAL_ZOOM = 1.25;
   const INITIAL_PAN_X = -180;
   const INITIAL_PAN_Y = 120;
 
@@ -36,9 +35,9 @@
 
   const STEP_LIST = [
     {
-      title: '将拖动地图到屏幕的中心',
-      body: '按住鼠标左键拖动地图，让地图中心回到屏幕中心。',
-      hint: '地图回到中心后自动进入下一步。',
+      title: '拖动地图',
+      body: '按住鼠标左键拖动地图，熟悉地图平移操作。',
+      hint: '拖动一次后自动进入下一步。',
       targets: [POS.playerCrown],
     },
     {
@@ -237,10 +236,6 @@
   function setPaused(paused, reason) {
     state.paused = paused;
     state.pauseReason = reason || '';
-  }
-
-  function isMapCentered() {
-    return Math.abs(state.panX) <= CENTER_THRESHOLD_PX && Math.abs(state.panY) <= CENTER_THRESHOLD_PX;
   }
 
   function encodeVisibleTile(tile) {
@@ -710,7 +705,7 @@
   function evaluateStepProgress() {
     switch (state.currentStep) {
       case 0:
-        if (state.didPan && isMapCentered()) {
+        if (state.didPan) {
           nextStep();
         }
         break;
@@ -1060,8 +1055,7 @@
       if (!res.ok) {
         throw new Error('unauthorized');
       }
-      const data = await res.json();
-      dom.accountName.textContent = String(data.username || '');
+      await res.json();
       return true;
     } catch {
       location.href = '/login';
@@ -1080,7 +1074,6 @@
     dom.stepHint = document.getElementById('tutorial-step-hint');
     dom.homeBtn = document.getElementById('room-home-btn');
     dom.resetBtn = document.getElementById('tutorial-reset-btn');
-    dom.accountName = document.getElementById('account-name');
   }
 
   async function main() {

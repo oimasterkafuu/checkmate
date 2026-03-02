@@ -12,14 +12,6 @@ body {
   z-index: 30;
 }
 
-#tutorial-top-left #account-name {
-  display: inline-block;
-  padding: 6px 8px;
-  font-size: 13px;
-  opacity: 0.78;
-  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
-}
-
 #tutorial-step-banner {
   position: fixed;
   top: 12px;
@@ -108,11 +100,6 @@ body {
     left: 8px;
     top: 8px;
     gap: 4px;
-  }
-
-  #tutorial-top-left #account-name {
-    font-size: 12px;
-    padding: 4px 6px;
   }
 
   #tutorial-top-left button {
