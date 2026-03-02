@@ -676,6 +676,9 @@
   }
 
   function applySwampDrain() {
+    if (state.turn % 2 !== 0) {
+      return;
+    }
     for (let x = 0; x < BOARD_ROWS; x += 1) {
       for (let y = 0; y < BOARD_COLS; y += 1) {
         const tile = tileAt(x, y);
