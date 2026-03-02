@@ -266,8 +266,8 @@
             <h4>基本规则</h4>
             <ul class="rule-list">
               <li>每位玩家有 1 座皇冠，皇冠被攻陷即被淘汰并被接管。</li>
-              <li>城市与皇冠每 2 回合增兵，所有领地每 50 回合增兵。</li>
-              <li>山脉不可通行；沼泽会持续损兵，兵力为 0 时会失去控制。</li>
+              <li>城市与皇冠每 2 回合增 1 兵力，所有领地每 50 回合增 1 兵力。</li>
+              <li>山脉不可通行；沼泽每回合会损失 1 兵力，兵力为 0 时会失去控制。</li>
               <li>地图模式会影响地形结构与前期扩张路线。</li>
             </ul>
           </div>
@@ -309,8 +309,11 @@
               <li>无点与有点属于同一整回合的两个阶段，不是两个完整回合。</li>
               <li>所有已占领领地每 25 回合（50 个“半回合”）增加 1 兵力。</li>
               <li>城市与皇冠每回合（2 个“半回合”）额外增加 1 兵力。</li>
-              <li>兵力移动按相减结算：默认派出“当前兵力 - 1”，所以每一步出发格都会至少留下 1 兵力。</li>
+              <li>攻击时，兵力按相减结算。自己的格子需要看守者，所以最多派出“当前兵力 - 1”。</li>
             </ul>
+            <div style="margin-top: 12px">
+              <button id="open-tutorial-btn" class="small">进入互动教程</button>
+            </div>
           </div>
           <div class="rule-block">
             <h4>鼠标与键盘</h4>
@@ -327,9 +330,6 @@
               <li><span class="kbd">Space</span>：清除当前选中。</li>
             </ul>
           </div>
-        </div>
-        <div style="margin-top: 12px">
-          <button id="open-tutorial-btn" class="small">进入互动教程</button>
         </div>
       </section>
 
@@ -411,33 +411,8 @@
       </section>
 
       <section class="about-panel">
-        <h3>许可证</h3>
-        <p>当前项目：GNU Affero General Public License v3.0（AGPL-3.0）。</p>
-        <p style="margin-top: 8px">第三方来源或参考内容分别遵循其原始许可证（如 BSD 3-Clause、MIT）。</p>
-        <p style="margin-top: 8px">
-          其中 <code>bot-template/strategy-bot</code> 含
-          <a
-            class="about-link"
-            href="https://github.com/EklipZgit/generals-bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            >EklipZgit/generals-bot</a
-          >
-          的 MIT 许可证代码快照；本仓库中的来源与改动说明见
-          <a
-            class="about-link"
-            href="https://github.com/oimasterkafuu/checkmate/blob/main/bot-template/strategy-bot/THIRD_PARTY_NOTICES.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            ><code>THIRD_PARTY_NOTICES.md</code></a
-          >。
-        </p>
-        <p class="about-note">具体条款请以项目中的 LICENSE 文件与原始仓库声明为准。</p>
-      </section>
-
-      <section class="about-panel">
         <h3>地图示例</h3>
-        <p>手动选择地图类型与人数后，服务器实时生成单张示例地图。</p>
+        <p>如果觉得地图的名字晦涩难懂，可以生成一张示例地图参考。</p>
         <div class="map-example-toolbar">
           <label class="map-example-control"
             >地图类型：
@@ -549,7 +524,8 @@
         lastMapExampleData = data;
         const example = data.example;
         document.getElementById('map-example-title').textContent = mapModeLabel(example.map_mode);
-        document.getElementById('map-example-meta').textContent = `${example.n} x ${example.m} · ${data.players} 人`;
+        document.getElementById('map-example-meta').textContent =
+          `${example.n} x ${example.m} · ${data.players} 人`;
         document.getElementById('map-example-mode').value = String(example.map_mode || 'random');
         document.getElementById('map-example-players').value = String(data.players);
         renderExampleBoard(document.getElementById('map-example-board'), example);
@@ -571,7 +547,10 @@
       }
 
       function getSelectedMapPlayers() {
-        const parsed = Number.parseInt(String(document.getElementById('map-example-players').value || '4'), 10);
+        const parsed = Number.parseInt(
+          String(document.getElementById('map-example-players').value || '4'),
+          10,
+        );
         if (!Number.isFinite(parsed)) {
           return 4;
         }
