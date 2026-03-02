@@ -22,9 +22,6 @@ interface MediterraneanMapGenerationConfig extends MapGenerationConfig {
 const resolveEdgeDistance = (n: number, m: number, x: number, y: number): number =>
   Math.min(x, n - 1 - x, y, m - 1 - y);
 
-const resolveCornerDistance = (n: number, m: number, x: number, y: number): number =>
-  Math.min(x + y, x + (m - 1 - y), (n - 1 - x) + y, (n - 1 - x) + (m - 1 - y));
-
 const buildSeaDistanceMap = (gridType: Grid<Tile>, n: number, m: number): Int16Array => {
   const total = n * m;
   const dist = new Int16Array(total);
@@ -261,97 +258,28 @@ const generateMediterraneanMap = (
     }
   }
 
-  const targetCityCount = Math.max(1, Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 1.4));
-  const cornerGuard = Math.max(2, Math.floor(Math.min(n, m) * 0.08));
-  const citySeaDistanceStart = Math.max(4, Math.floor(Math.min(n, m) * 0.095));
-  const inlandCityCandidates: Array<[number, number]> = [];
-
-  const collectCityCandidates = (seaThreshold: number, cornerThreshold: number): Array<[number, number]> => {
-    const candidates: Array<[number, number]> = [];
-    for (let i = 0; i < n; i += 1) {
-      for (let j = 0; j < m; j += 1) {
-        if (!st[i][j] || gridType[i][j] !== 0) {
-          continue;
-        }
-        if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
-          continue;
-        }
-        if (resolveCornerDistance(n, m, i, j) <= cornerThreshold) {
-          continue;
-        }
-        if (hasAdjacentSwamp8(gridType, n, m, i, j)) {
-          continue;
-        }
-        if (seaDistance[i * m + j] < seaThreshold) {
-          continue;
-        }
-        candidates.push([i, j]);
-      }
-    }
-    return candidates;
-  };
-
-  for (let seaThreshold = citySeaDistanceStart; seaThreshold >= 2; seaThreshold -= 1) {
-    const candidates = collectCityCandidates(seaThreshold, cornerGuard);
-    if (candidates.length > inlandCityCandidates.length) {
-      inlandCityCandidates.splice(0, inlandCityCandidates.length, ...candidates);
-    }
-    if (inlandCityCandidates.length >= targetCityCount) {
-      break;
-    }
-  }
-  if (inlandCityCandidates.length < targetCityCount) {
-    const relaxed = collectCityCandidates(1, 0);
-    if (relaxed.length > inlandCityCandidates.length) {
-      inlandCityCandidates.splice(0, inlandCityCandidates.length, ...relaxed);
-    }
-  }
-
-  shuffle(inlandCityCandidates, rng);
-  const selectedKeys = new Set<number>();
-  const selectedCities: Array<[number, number]> = [];
-  let currentCityCount = 0;
-  const minSpacingStart = Math.max(2, Math.floor(Math.min(n, m) * 0.05));
-
-  for (let minSpacing = minSpacingStart; minSpacing >= 1 && currentCityCount < targetCityCount; minSpacing -= 1) {
-    for (let i = 0; i < inlandCityCandidates.length && currentCityCount < targetCityCount; i += 1) {
-      const [x, y] = inlandCityCandidates[i];
-      const key = x * m + y;
-      if (selectedKeys.has(key)) {
+  const cityCandidates: Array<[number, number]> = [];
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      if (!st[i][j] || gridType[i][j] !== 0) {
         continue;
       }
-
-      let tooClose = false;
-      for (let j = 0; j < selectedCities.length; j += 1) {
-        const [cx, cy] = selectedCities[j];
-        if (Math.abs(x - cx) + Math.abs(y - cy) < minSpacing) {
-          tooClose = true;
-          break;
-        }
-      }
-      if (tooClose) {
+      if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
         continue;
       }
-
-      selectedCities.push([x, y]);
-      selectedKeys.add(key);
-      currentCityCount += 1;
+      if (hasAdjacentSwamp8(gridType, n, m, i, j)) {
+        continue;
+      }
+      cityCandidates.push([i, j]);
     }
   }
-
-  for (let i = 0; i < inlandCityCandidates.length && currentCityCount < targetCityCount; i += 1) {
-    const [x, y] = inlandCityCandidates[i];
-    const key = x * m + y;
-    if (selectedKeys.has(key)) {
-      continue;
-    }
-    selectedCities.push([x, y]);
-    selectedKeys.add(key);
-    currentCityCount += 1;
-  }
-
-  for (let i = 0; i < selectedCities.length; i += 1) {
-    const [x, y] = selectedCities[i];
+  shuffle(cityCandidates, rng);
+  const targetCityCount = Math.min(
+    cityCandidates.length,
+    Math.max(1, Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 1.4)),
+  );
+  for (let i = 0; i < targetCityCount; i += 1) {
+    const [x, y] = cityCandidates[i];
     gridType[x][y] = -1;
   }
 
