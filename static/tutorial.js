@@ -89,6 +89,12 @@
       targets: [POS.enemyLand],
     },
     {
+      title: '兵力不足时先后方集兵',
+      body: '如果正面没打下来，先从后方回拉兵力，再集中推进。',
+      hint: '先补兵，再继续攻击高亮目标格。',
+      targets: [],
+    },
+    {
       title: '攻击敌方城市',
       body: '夺取敌方城市可以压制对方增兵能力。',
       hint: '目标：占领高亮敌方城市。',
@@ -107,6 +113,11 @@
       targets: [],
     },
   ];
+
+  const STEP_ENEMY_LAND = 8;
+  const STEP_REINFORCE = 9;
+  const STEP_ENEMY_CITY = 10;
+  const STEP_ENEMY_CROWN = 11;
 
   const dom = {};
   let state = null;
@@ -152,6 +163,11 @@
       didPan: false,
       didZoom: false,
       enemyDefeated: false,
+      reinforceContext: {
+        active: false,
+        returnStep: -1,
+        target: null,
+      },
       moveMode: 1,
       panX: INITIAL_PAN_X,
       panY: INITIAL_PAN_Y,
@@ -308,6 +324,12 @@
 
   function getStepTargets(index) {
     const step = STEP_LIST[index] || STEP_LIST[STEP_LIST.length - 1];
+    if (index === STEP_REINFORCE) {
+      const reinforceTarget = state.reinforceContext && state.reinforceContext.target;
+      if (Array.isArray(reinforceTarget) && reinforceTarget.length === 2) {
+        return new Set([reinforceTarget[0] + ',' + reinforceTarget[1]]);
+      }
+    }
     const targets = Array.isArray(step.targets) ? step.targets : [];
     const set = new Set();
     for (let i = 0; i < targets.length; i += 1) {
@@ -539,6 +561,25 @@
     evaluateStepProgress();
   }
 
+  function triggerReinforceStep(targetX, targetY) {
+    if (!inBounds(targetX, targetY)) {
+      return;
+    }
+    if (state.currentStep !== STEP_ENEMY_LAND && state.currentStep !== STEP_ENEMY_CITY && state.currentStep !== STEP_REINFORCE) {
+      return;
+    }
+
+    if (state.currentStep !== STEP_REINFORCE) {
+      state.reinforceContext.active = true;
+      state.reinforceContext.returnStep = state.currentStep;
+    }
+    state.reinforceContext.target = [targetX, targetY];
+
+    if (state.currentStep !== STEP_REINFORCE) {
+      enterStep(STEP_REINFORCE);
+    }
+  }
+
   function applyCaptureIfEnemyDefeated(crownX, crownY) {
     for (let x = 0; x < BOARD_ROWS; x += 1) {
       for (let y = 0; y < BOARD_COLS; y += 1) {
@@ -610,6 +651,9 @@
     }
 
     to.army -= movingArmy;
+    if (to.owner === ENEMY_ID) {
+      triggerReinforceStep(cmd.toX, cmd.toY);
+    }
     if (to.army === 0 && to.terrain === 'plain') {
       to.owner = 0;
     }
@@ -753,17 +797,34 @@
           nextStep();
         }
         break;
-      case 8:
+      case STEP_ENEMY_LAND:
         if (isOwned(POS.enemyLand)) {
-          nextStep();
+          enterStep(STEP_ENEMY_CITY);
         }
         break;
-      case 9:
+      case STEP_REINFORCE: {
+        const target = state.reinforceContext.target;
+        if (Array.isArray(target) && target.length === 2 && isOwned(target)) {
+          const returnStep = state.reinforceContext.returnStep;
+          state.reinforceContext.active = false;
+          state.reinforceContext.returnStep = -1;
+          state.reinforceContext.target = null;
+          if (returnStep === STEP_ENEMY_LAND) {
+            enterStep(STEP_ENEMY_CITY);
+          } else if (returnStep === STEP_ENEMY_CITY) {
+            enterStep(STEP_ENEMY_CROWN);
+          } else {
+            nextStep();
+          }
+        }
+        break;
+      }
+      case STEP_ENEMY_CITY:
         if (isOwned(POS.enemyCity)) {
-          nextStep();
+          enterStep(STEP_ENEMY_CROWN);
         }
         break;
-      case 10:
+      case STEP_ENEMY_CROWN:
         if (state.enemyDefeated || isOwned(POS.enemyCrown)) {
           nextStep();
         }
