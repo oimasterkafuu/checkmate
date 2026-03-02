@@ -1,0 +1,82 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <link rel="stylesheet" href="/main.css" />
+    <link rel="stylesheet" href="/styles/tutorial.css" />
+    <title>Checkmate!! - 互动教程</title>
+  </head>
+
+  <body>
+    <div id="tutorial-root">
+      <aside id="tutorial-panel">
+        <div id="tutorial-header">
+          <h1>互动教程</h1>
+          <div id="tutorial-step-progress"></div>
+        </div>
+
+        <section class="tutorial-card" style="margin-top: 0">
+          <h3 id="tutorial-step-title"></h3>
+          <p id="tutorial-step-body"></p>
+          <p id="tutorial-step-hint"></p>
+        </section>
+
+        <section class="tutorial-card">
+          <h3>规则速记</h3>
+          <p>
+            <b>攻击</b>：从选中格向相邻格推进兵力。默认推进 <code>当前兵力 - 1</code>，原格至少保留 1。
+          </p>
+          <p><b>结算</b>：进攻兵力大于守军则占领；否则仅削减守军，不会占领。</p>
+          <p>
+            <b>操作队列</b>：你可以连续下指令，系统每回合执行 1 步。<span class="tutorial-kbd">Q</span>
+            清空，<span class="tutorial-kbd">E</span> 撤销最后一步。
+          </p>
+        </section>
+
+        <section class="tutorial-card">
+          <h3>当前队列</h3>
+          <ol id="tutorial-queue-list"></ol>
+        </section>
+
+        <section class="tutorial-card">
+          <h3>操作提示</h3>
+          <p>地图拖动：按住鼠标左键</p>
+          <p>地图缩放：鼠标滚轮</p>
+          <p>方向移动：<span class="tutorial-kbd">W</span>/<span class="tutorial-kbd">A</span>/<span class="tutorial-kbd">S</span>/<span class="tutorial-kbd">D</span></p>
+          <p>取消选中：<span class="tutorial-kbd">Space</span></p>
+        </section>
+      </aside>
+
+      <section id="tutorial-stage">
+        <div id="tutorial-topbar">
+          <button id="tutorial-back-btn" class="small">返回首页</button>
+          <button id="tutorial-reset-btn" class="small">重置教程</button>
+          <div id="tutorial-user-wrap">
+            当前账号：<span id="account-name" style="font-family: Quicksand-Bold, HYMaQiDuo-Bold"></span>
+          </div>
+        </div>
+
+        <div id="tutorial-map-stage">
+          <div id="tutorial-map-overlay"></div>
+          <div id="tutorial-map"></div>
+        </div>
+
+        <div id="tutorial-hud">
+          <span id="tutorial-chip-paused" class="tutorial-chip"></span>
+          <span id="tutorial-chip-turn" class="tutorial-chip"></span>
+          <span id="tutorial-chip-queue" class="tutorial-chip"></span>
+          <span id="tutorial-chip-selection" class="tutorial-chip"></span>
+          <div id="tutorial-hud-right">
+            <button id="tutorial-clear-queue-btn" class="small">清空队列 (Q)</button>
+            <button id="tutorial-pop-queue-btn" class="small">撤销一步 (E)</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="/tutorial.js"></script>
+  </body>
+</html>

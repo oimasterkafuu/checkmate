@@ -327,6 +327,9 @@
             </ul>
           </div>
         </div>
+        <div style="margin-top: 12px">
+          <button id="open-tutorial-btn" class="small">进入互动教程</button>
+        </div>
       </section>
 
       <section class="about-panel">
@@ -612,6 +615,10 @@
 
       document.getElementById('back-home-btn').addEventListener('click', function () {
         location.href = '/';
+      });
+
+      document.getElementById('open-tutorial-btn').addEventListener('click', function () {
+        location.href = '/tutorial';
       });
 
       document.getElementById('generate-map-example-btn').addEventListener('click', async function () {

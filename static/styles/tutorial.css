@@ -1,0 +1,266 @@
+body {
+  overflow: hidden;
+}
+
+#tutorial-root {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 12px;
+}
+
+#tutorial-panel {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.36);
+  box-shadow: 2px 2px teal;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+#tutorial-header {
+  margin-bottom: 12px;
+}
+
+#tutorial-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+
+#tutorial-step-progress {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.78;
+}
+
+#tutorial-step-title {
+  margin: 0;
+  font-size: 19px;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+
+#tutorial-step-body,
+#tutorial-step-hint {
+  margin: 8px 0 0 0;
+  line-height: 1.65;
+  font-size: 14px;
+}
+
+#tutorial-step-hint {
+  opacity: 0.85;
+  color: #c7ffff;
+}
+
+.tutorial-card {
+  margin-top: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+}
+
+.tutorial-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-family: Quicksand-Bold, HYMaQiDuo-Bold;
+}
+
+.tutorial-card p {
+  margin: 0 0 8px 0;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.tutorial-kbd {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  color: #e7ffff;
+}
+
+#tutorial-queue-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+#tutorial-queue-list li {
+  margin-bottom: 4px;
+}
+
+#tutorial-stage {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+#tutorial-topbar,
+#tutorial-hud {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 2px 2px teal;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#tutorial-user-wrap {
+  margin-left: auto;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+#tutorial-map-stage {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: radial-gradient(circle at 20% 20%, rgba(5, 28, 32, 0.7), rgba(10, 12, 16, 0.9));
+  box-shadow: 3px 3px teal;
+  overflow: hidden;
+}
+
+#tutorial-map-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  z-index: 4;
+  pointer-events: none;
+}
+
+#tutorial-map {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  --pan-x: 0px;
+  --pan-y: 0px;
+  --zoom: 1;
+  transform: translate(-50%, -50%) translate(var(--pan-x), var(--pan-y)) scale(var(--zoom));
+  transform-origin: center center;
+  z-index: 2;
+}
+
+#tutorial-map.dragging {
+  cursor: grabbing;
+}
+
+#tutorial-map table {
+  border-spacing: 0;
+}
+
+#tutorial-map td {
+  position: relative;
+}
+
+.tutorial-target {
+  box-shadow: inset 0 0 0 2px #ffdc73;
+  animation: tutorial-target-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes tutorial-target-pulse {
+  0% {
+    box-shadow: inset 0 0 0 2px rgba(255, 220, 115, 0.9);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px rgba(255, 220, 115, 0.35);
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px rgba(255, 220, 115, 0.9);
+  }
+}
+
+.tutorial-arrow {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  font-size: 11px;
+  line-height: 1;
+  color: #ffef99;
+  text-shadow: 0 0 2px black;
+}
+
+.tutorial-chip {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tutorial-chip.paused {
+  border-color: rgba(255, 120, 120, 0.45);
+  background: rgba(255, 80, 80, 0.2);
+}
+
+.tutorial-chip.running {
+  border-color: rgba(90, 230, 230, 0.45);
+  background: rgba(30, 120, 120, 0.2);
+}
+
+#tutorial-hud-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#tutorial-map-tip {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+@media (max-width: 1080px) {
+  #tutorial-root {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  #tutorial-panel {
+    max-height: 44vh;
+  }
+}
+
+@media (max-width: 760px) {
+  #tutorial-root {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  #tutorial-header h1 {
+    font-size: 23px;
+  }
+
+  #tutorial-step-title {
+    font-size: 17px;
+  }
+
+  #tutorial-topbar,
+  #tutorial-hud {
+    padding: 8px;
+  }
+
+  #tutorial-user-wrap {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  #tutorial-hud-right {
+    margin-left: 0;
+    width: 100%;
+  }
+}
