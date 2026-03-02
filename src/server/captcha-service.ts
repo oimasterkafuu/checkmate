@@ -212,7 +212,7 @@ class CaptchaService {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    const lineCount = randomInt(2, 5);
+    const lineCount = randomInt(4, 8);
     for (let i = 0; i < lineCount; i += 1) {
       const noiseColor = randomInkColor();
       ctx.strokeStyle = rgbToRgba(noiseColor, randomFloat(0.16, 0.28));
@@ -223,7 +223,7 @@ class CaptchaService {
       ctx.stroke();
     }
 
-    const pointCount = randomInt(12, 24);
+    const pointCount = randomInt(22, 40);
     for (let i = 0; i < pointCount; i += 1) {
       const dotColor = randomInkColor();
       ctx.fillStyle = rgbToRgba(dotColor, randomFloat(0.18, 0.36));
