@@ -20,18 +20,24 @@ interface MediterraneanMapGenerationConfig extends MapGenerationConfig {
 const resolveEdgeDistance = (n: number, m: number, x: number, y: number): number =>
   Math.min(x, n - 1 - x, y, m - 1 - y);
 
-const hasAdjacentSwamp = (gridType: Grid<Tile>, n: number, m: number, x: number, y: number): boolean => {
-  if (x > 0 && gridType[x - 1][y] === 2) {
-    return true;
-  }
-  if (x + 1 < n && gridType[x + 1][y] === 2) {
-    return true;
-  }
-  if (y > 0 && gridType[x][y - 1] === 2) {
-    return true;
-  }
-  if (y + 1 < m && gridType[x][y + 1] === 2) {
-    return true;
+const resolveCornerDistance = (n: number, m: number, x: number, y: number): number =>
+  Math.min(x + y, x + (m - 1 - y), (n - 1 - x) + y, (n - 1 - x) + (m - 1 - y));
+
+const hasAdjacentSwamp8 = (gridType: Grid<Tile>, n: number, m: number, x: number, y: number): boolean => {
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dy = -1; dy <= 1; dy += 1) {
+      if (dx === 0 && dy === 0) {
+        continue;
+      }
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= n || ny >= m) {
+        continue;
+      }
+      if (gridType[nx][ny] === 2) {
+        return true;
+      }
+    }
   }
   return false;
 };
@@ -138,11 +144,11 @@ const generateMediterraneanMap = (
 
   const centerX = (n - 1) / 2;
   const centerY = (m - 1) / 2;
-  const centerRadiusX = Math.max(2, n * (0.42 + rng.next() * 0.08));
-  const centerRadiusY = Math.max(2, m * (0.42 + rng.next() * 0.08));
-  const centerSwampNoise = 0.09 + rng.next() * 0.08;
+  const centerRadiusX = Math.max(2, n * (0.34 + rng.next() * 0.08));
+  const centerRadiusY = Math.max(2, m * (0.34 + rng.next() * 0.08));
+  const centerSwampNoise = 0.1 + rng.next() * 0.08;
   const centerMountainChance = 0.04 + rng.next() * 0.04;
-  const baseSpawnBand = Math.max(1, Math.floor(Math.min(n, m) * 0.11));
+  const baseSpawnBand = Math.max(2, Math.floor(Math.min(n, m) * 0.12));
 
   let gridType: Grid<Tile> = build2D<Tile>(n, m, 0);
   while (true) {
@@ -199,43 +205,16 @@ const generateMediterraneanMap = (
         continue;
       }
       initialCityCount += 1;
-      if (hasAdjacentSwamp(gridType, n, m, i, j)) {
+      if (hasAdjacentSwamp8(gridType, n, m, i, j)) {
         gridType[i][j] = 0;
       }
     }
   }
 
-  const coastalCityCandidates: Array<[number, number]> = [];
-  for (let i = 0; i < n; i += 1) {
-    for (let j = 0; j < m; j += 1) {
-      if (!st[i][j] || gridType[i][j] !== 0) {
-        continue;
-      }
-      if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
-        continue;
-      }
-      if (hasAdjacentSwamp(gridType, n, m, i, j)) {
-        continue;
-      }
-      const dx = (i - centerX) / centerRadiusX;
-      const dy = (j - centerY) / centerRadiusY;
-      const radial = dx * dx + dy * dy;
-      if (radial > 1.02 && radial < 2.3) {
-        coastalCityCandidates.push([i, j]);
-      }
-    }
-  }
-  shuffle(coastalCityCandidates, rng);
-  const coastalCityTarget = Math.min(
-    coastalCityCandidates.length,
-    Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 0.55),
+  const targetCityCount = Math.max(
+    initialCityCount,
+    Math.floor(n * m * MAX_CITY_RATIO * config.cityRatio * 1.45),
   );
-  for (let i = 0; i < coastalCityTarget; i += 1) {
-    const [x, y] = coastalCityCandidates[i];
-    gridType[x][y] = -1;
-  }
-
-  const targetCityCount = initialCityCount + coastalCityTarget;
   let currentCityCount = 0;
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
@@ -246,27 +225,93 @@ const generateMediterraneanMap = (
   }
   if (currentCityCount < targetCityCount) {
     const inlandCityCandidates: Array<[number, number]> = [];
+    const cornerGuard = Math.max(2, Math.floor(Math.min(n, m) * 0.08));
     for (let i = 0; i < n; i += 1) {
       for (let j = 0; j < m; j += 1) {
         if (!st[i][j] || gridType[i][j] !== 0) {
           continue;
         }
-        if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
+        const edgeDistance = resolveEdgeDistance(n, m, i, j);
+        if (edgeDistance <= baseSpawnBand) {
           continue;
         }
-        if (hasAdjacentSwamp(gridType, n, m, i, j)) {
+        if (hasAdjacentSwamp8(gridType, n, m, i, j)) {
+          continue;
+        }
+        if (resolveCornerDistance(n, m, i, j) <= cornerGuard) {
           continue;
         }
         inlandCityCandidates.push([i, j]);
       }
     }
+
+    const existingCities: Array<[number, number]> = [];
+    for (let i = 0; i < n; i += 1) {
+      for (let j = 0; j < m; j += 1) {
+        if (st[i][j] && gridType[i][j] === -1) {
+          existingCities.push([i, j]);
+        }
+      }
+    }
+
     shuffle(inlandCityCandidates, rng);
+    const selectedKeys = new Set<number>();
+    const selectedExtras: Array<[number, number]> = [];
+    const minSpacingStart = Math.max(2, Math.floor(Math.min(n, m) * 0.05));
+
     for (
-      let i = 0;
-      i < inlandCityCandidates.length && currentCityCount < targetCityCount;
-      i += 1, currentCityCount += 1
+      let minSpacing = minSpacingStart;
+      minSpacing >= 1 && currentCityCount < targetCityCount;
+      minSpacing -= 1
     ) {
+      for (let i = 0; i < inlandCityCandidates.length && currentCityCount < targetCityCount; i += 1) {
+        const [x, y] = inlandCityCandidates[i];
+        const key = x * m + y;
+        if (selectedKeys.has(key)) {
+          continue;
+        }
+
+        let tooClose = false;
+        for (let j = 0; j < existingCities.length; j += 1) {
+          const [cx, cy] = existingCities[j];
+          if (Math.abs(x - cx) + Math.abs(y - cy) < minSpacing) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (tooClose) {
+          continue;
+        }
+        for (let j = 0; j < selectedExtras.length; j += 1) {
+          const [cx, cy] = selectedExtras[j];
+          if (Math.abs(x - cx) + Math.abs(y - cy) < minSpacing) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (tooClose) {
+          continue;
+        }
+
+        selectedExtras.push([x, y]);
+        selectedKeys.add(key);
+        currentCityCount += 1;
+      }
+    }
+
+    for (let i = 0; i < inlandCityCandidates.length && currentCityCount < targetCityCount; i += 1) {
       const [x, y] = inlandCityCandidates[i];
+      const key = x * m + y;
+      if (selectedKeys.has(key)) {
+        continue;
+      }
+      selectedExtras.push([x, y]);
+      selectedKeys.add(key);
+      currentCityCount += 1;
+    }
+
+    for (let i = 0; i < selectedExtras.length; i += 1) {
+      const [x, y] = selectedExtras[i];
       gridType[x][y] = -1;
     }
   }
@@ -274,29 +319,62 @@ const generateMediterraneanMap = (
   const requiredPlayers = Math.max(0, config.requiredPlayers);
   const spawnPoints: Array<[number, number]> = [];
   if (requiredPlayers > 0) {
+    const outerMaxBand = Math.max(baseSpawnBand + 2, Math.floor(Math.min(n, m) * 0.26));
     let spawnBand = baseSpawnBand;
-    const maxBand = Math.max(spawnBand, Math.floor(Math.min(n, m) / 2) - 1);
-    let edgeCells = collectEdgeCandidates(n, m, st, gridType, spawnBand, false);
+    let outerPlain: Array<[number, number]> = [];
 
-    while (edgeCells.length < requiredPlayers && spawnBand < maxBand) {
+    while (spawnBand <= outerMaxBand) {
+      const candidates = collectEdgeCandidates(n, m, st, gridType, spawnBand, true).filter(([x, y]) => {
+        const edgeDistance = resolveEdgeDistance(n, m, x, y);
+        if (edgeDistance === 0) {
+          return false;
+        }
+        return !hasAdjacentSwamp8(gridType, n, m, x, y);
+      });
+      if (candidates.length >= requiredPlayers) {
+        outerPlain = candidates;
+        break;
+      }
+      if (candidates.length > outerPlain.length) {
+        outerPlain = candidates;
+      }
       spawnBand += 1;
-      edgeCells = collectEdgeCandidates(n, m, st, gridType, spawnBand, false);
     }
 
-    let edgePlain = collectEdgeCandidates(n, m, st, gridType, spawnBand, true);
-    if (edgePlain.length < requiredPlayers) {
-      const convertible = edgeCells.filter(([x, y]) => gridType[x][y] !== 0);
-      shuffle(convertible, rng);
-      for (let i = 0; i < convertible.length && edgePlain.length < requiredPlayers; i += 1) {
-        const [x, y] = convertible[i];
-        gridType[x][y] = 0;
-        owner[x][y] = 0;
-        armyCnt[x][y] = 0;
-        edgePlain.push([x, y]);
+    if (outerPlain.length < requiredPlayers) {
+      const fallbackOuter = collectEdgeCandidates(n, m, st, gridType, outerMaxBand, true).filter(([x, y]) => {
+        const edgeDistance = resolveEdgeDistance(n, m, x, y);
+        if (edgeDistance === 0) {
+          return false;
+        }
+        return !hasAdjacentSwamp8(gridType, n, m, x, y);
+      });
+      if (fallbackOuter.length > outerPlain.length) {
+        outerPlain = fallbackOuter;
       }
     }
 
-    spawnPoints.push(...pickDistributedEdgeSpawns(edgePlain, requiredPlayers, m, rng));
+    if (outerPlain.length < requiredPlayers) {
+      const anyOuter = collectEdgeCandidates(n, m, st, gridType, outerMaxBand, false).filter(([x, y]) => {
+        const edgeDistance = resolveEdgeDistance(n, m, x, y);
+        if (edgeDistance === 0 || hasAdjacentSwamp8(gridType, n, m, x, y)) {
+          return false;
+        }
+        return true;
+      });
+      shuffle(anyOuter, rng);
+      for (let i = 0; i < anyOuter.length && outerPlain.length < requiredPlayers; i += 1) {
+        const [x, y] = anyOuter[i];
+        if (gridType[x][y] !== 0) {
+          gridType[x][y] = 0;
+          owner[x][y] = 0;
+          armyCnt[x][y] = 0;
+        }
+        outerPlain.push([x, y]);
+      }
+    }
+
+    spawnPoints.push(...pickDistributedEdgeSpawns(outerPlain, requiredPlayers, m, rng));
   }
 
   for (let i = 0; i < n; i += 1) {
