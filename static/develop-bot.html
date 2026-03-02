@@ -119,10 +119,7 @@
 
     <div id="app">
       <h1 class="dev-title">Checkmate!! 机器人开发协议</h1>
-      <p class="dev-subtitle">
-        本页描述机器人与服务端的 Socket.IO 协议，包含连接流程、事件字段、坐标语义、增量帧合并和 tile
-        编码定义。
-      </p>
+      <p class="dev-subtitle">Checkmate!! 欢迎机器人开发。我们不仅提供文档，还提供两个示例。</p>
 
       <section class="dev-panel">
         <h2>1. 连接与鉴权</h2>
@@ -163,7 +160,7 @@ const socket = io(BOT_SERVER, {
       <section class="dev-panel">
         <h2>2. 房间阶段协议（开局前）</h2>
 
-        <h3>2.1 Client -> Server</h3>
+        <h3>2.1 Client → Server</h3>
         <table class="protocol-table">
           <tr>
             <th><code>join_game_room</code></th>
@@ -193,7 +190,7 @@ const socket = io(BOT_SERVER, {
           </tr>
         </table>
 
-        <h3>2.2 Server -> Client</h3>
+        <h3>2.2 Server → Client</h3>
         <table class="protocol-table">
           <tr>
             <th><code>room_update</code></th>
@@ -416,11 +413,10 @@ function applyUpdate(frame) {
   }
 }</code></pre>
         <div class="tips">
-          <b>建议：</b>
+          <b>提示：</b>
           <ul>
             <li>任何时刻都维护一份全量缓存，避免只依赖 diff 帧。</li>
             <li>收到 <code>is_diff=false</code> 全量帧时，用它重置本地状态。</li>
-            <li>如果你是从外部策略引擎桥接，务必先统一坐标语义（row/col）。</li>
           </ul>
         </div>
       </section>
@@ -454,7 +450,7 @@ function applyUpdate(frame) {
             rel="noopener noreferrer"
             ><code>EklipZgit/generals-bot</code></a
           >
-          的 MIT 许可证代码快照。
+          （也就是我们熟知的 Human.exe）。
         </p>
         <div class="nav-row">
           <button id="goto-home" class="small">返回首页</button>
