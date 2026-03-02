@@ -78,6 +78,26 @@ class BotHostBase(object):
         logbook.info("attempting to start viewer loop")
         self._viewer.start()
 
+    def _ensure_bot_initialized(self, currentMap: MapBase) -> bool:
+        if self.eklipz_bot.isInitialized:
+            return True
+
+        player_idx = currentMap.player_index
+        my_general = None
+        if 0 <= player_idx < len(currentMap.players):
+            my_general = currentMap.players[player_idx].general
+        if my_general is None and 0 <= player_idx < len(currentMap.generals):
+            my_general = currentMap.generals[player_idx]
+
+        if my_general is None:
+            logbook.info(
+                f'Deferring bot init on turn {currentMap.turn}: own general is not available in current map view.',
+            )
+            return False
+
+        self.eklipz_bot.initialize_from_map_for_first_time(currentMap)
+        return True
+
     def make_move(self, currentMap: MapBase, updateReceivedTime: float):
         # todo most of this logic / timing / whatever should move into EklipZbot...
         timer: PerformanceTimer = self.eklipz_bot.perf_timer
@@ -92,8 +112,8 @@ class BotHostBase(object):
 
         timer.record_update(currentMap.turn, updateReceivedTime)
 
-        if not self.eklipz_bot.isInitialized:
-            self.eklipz_bot.initialize_from_map_for_first_time(currentMap)
+        if not self._ensure_bot_initialized(currentMap):
+            return
         # self.eklipz_bot._map = currentMap
 
         with timer.begin_move(currentMap.turn) as moveTimer:
@@ -169,8 +189,8 @@ class BotHostBase(object):
 
         timer.record_update(currentMap.turn, updateReceivedTime)
 
-        if not self.eklipz_bot.isInitialized:
-            self.eklipz_bot.initialize_from_map_for_first_time(currentMap)
+        if not self._ensure_bot_initialized(currentMap):
+            return
         # self.eklipz_bot._map = currentMap
 
         with timer.begin_move(currentMap.turn) as moveTimer:

@@ -22,6 +22,27 @@ import logbook
 import socketio
 
 
+class _SafeSocketClient(socketio.Client):
+    """Socket.IO client with a disconnect handler safe against namespace mutation races."""
+
+    def _handle_eio_disconnect(self, reason):
+        self.logger.info('Engine.IO connection dropped')
+        will_reconnect = self.reconnection and self.eio.state == 'connected'
+        if self.connected:
+            # python-socketio can mutate namespaces during disconnect callbacks.
+            for namespace in list(self.namespaces):
+                self._trigger_event('disconnect', namespace, reason)
+                if not will_reconnect:
+                    self._trigger_event('__disconnect_final', namespace)
+            self.namespaces = {}
+            self.connected = False
+        self.callbacks = {}
+        self._binary_packet = None
+        self.sid = None
+        if will_reconnect and not self._reconnect_task:
+            self._reconnect_task = self.start_background_task(self._handle_reconnect)
+
+
 class ChatUpdate(object):
     def __init__(self, fromUser: str, fromTeam: bool, message: str):
         self.from_user: str = fromUser
@@ -236,10 +257,16 @@ class GeneralsClient(object):
         self._updates: queue.Queue[tuple[str, typing.Any]] = queue.Queue()
         self._translator = _CheckmateFrameTranslator()
 
-        self._socket = socketio.Client(reconnection=True, logger=False, engineio_logger=False)
+        # Disable library-managed reconnection to avoid namespace mutation race
+        # observed with python-socketio on Python 3.14. We reconnect manually.
+        self._socket = _SafeSocketClient(reconnection=False, logger=False, engineio_logger=False)
         self._connected = False
         self._started = False
         self._stopped = False
+        self._connect_lock = threading.Lock()
+        self._reconnect_lock = threading.Lock()
+        self._reconnect_thread: threading.Thread | None = None
+        self._allow_reconnect = True
 
         self._client_id: str = ''
         self._player_ids: list[str] = []
@@ -247,6 +274,7 @@ class GeneralsClient(object):
         self._last_turn: int = -1
         self._last_lobby_action_at: float = 0.0
         self._pending_updates: deque[dict[str, typing.Any]] = deque()
+        self._spectating_current_game = False
 
         self._register_handlers()
         self._connect()
@@ -262,14 +290,46 @@ class GeneralsClient(object):
                 return
             self._started = True
 
-        logbook.info(f'Connecting to Checkmate {self.server_url}, room={self.room_id}')
-        self._socket.connect(
-            self.server_url,
-            transports=['websocket', 'polling'],
-            auth={'token': self.token},
-            wait=True,
-            wait_timeout=10,
-        )
+        self._connect_once()
+
+    def _connect_once(self) -> None:
+        with self._connect_lock:
+            if self.terminated:
+                return
+            if self._socket.connected:
+                return
+            logbook.info(f'Connecting to Checkmate {self.server_url}, room={self.room_id}')
+            self._socket.connect(
+                self.server_url,
+                transports=['websocket', 'polling'],
+                auth={'token': self.token},
+                wait=True,
+                wait_timeout=10,
+            )
+
+    def _ensure_reconnect_loop(self) -> None:
+        if self.terminated or not self._allow_reconnect:
+            return
+        with self._reconnect_lock:
+            if self._reconnect_thread and self._reconnect_thread.is_alive():
+                return
+            self._reconnect_thread = threading.Thread(target=self._reconnect_loop, daemon=True)
+            self._reconnect_thread.start()
+
+    def _reconnect_loop(self) -> None:
+        delay = 1.0
+        while not self.terminated and not self._socket.connected:
+            time.sleep(delay)
+            if self.terminated or self._socket.connected:
+                break
+            try:
+                self._connect_once()
+                if self._socket.connected:
+                    logbook.info('Checkmate reconnect succeeded')
+                    return
+            except Exception:
+                logbook.error('Checkmate reconnect failed:\n' + traceback.format_exc())
+            delay = min(delay * 2.0, 5.0)
 
     def _register_handlers(self) -> None:
         @self._socket.event
@@ -279,11 +339,21 @@ class GeneralsClient(object):
             self._socket.emit('join_game_room', {'room': self.room_id})
 
         @self._socket.event
-        def disconnect():
+        def disconnect(reason=None):
             self._connected = False
-            logbook.info('Checkmate socket disconnected')
+            reason_text = '' if reason is None else str(reason)
+            if reason_text:
+                logbook.info(f'Checkmate socket disconnected ({reason_text})')
+            else:
+                logbook.info('Checkmate socket disconnected')
             if not self.terminated:
-                # Let get_updates loop continue waiting for reconnection-driven events.
+                # Server-enforced disconnect usually means another active socket for same account.
+                # Reconnecting immediately causes join/leave ping-pong.
+                if 'server disconnect' in reason_text:
+                    self._allow_reconnect = False
+                    logbook.info('Server disconnected this client; auto-reconnect disabled for this process.')
+                    return
+                self._ensure_reconnect_loop()
                 return
             self._queue_update('__closed__', None)
 
@@ -330,7 +400,7 @@ class GeneralsClient(object):
             except Exception:
                 logbook.error('chat_message handling failed:\n' + traceback.format_exc())
 
-    def _build_synthetic_start_data(self, n: int, m: int, player_ids: list[str]) -> dict[str, typing.Any]:
+    def _build_synthetic_start_data(self, n: int, m: int, player_ids: list[str]) -> dict[str, typing.Any] | None:
         room_players = list((self._last_room_update or {}).get('players') or [])
         allow_team = bool((self._last_room_update or {}).get('allow_team'))
 
@@ -369,13 +439,7 @@ class GeneralsClient(object):
                 player_index = -1
 
         if player_index < 0:
-            for i, sid in enumerate(player_ids):
-                if sid_to_user.get(sid) == self.username:
-                    player_index = i
-                    break
-
-        if player_index < 0:
-            raise RuntimeError('Client id not found in init_map player_ids.')
+            return None
 
         speed = float((self._last_room_update or {}).get('speed') or 1.0)
         replay_id = f'checkmate_{int(time.time())}_{random.randint(1000, 9999)}'
@@ -415,7 +479,20 @@ class GeneralsClient(object):
 
         self._player_ids = player_ids
         self._translator.set_dimensions(n, m)
-        self.start_data = self._build_synthetic_start_data(n, m, player_ids)
+        maybe_start_data = self._build_synthetic_start_data(n, m, player_ids)
+        if maybe_start_data is None:
+            self._spectating_current_game = True
+            self.start_data = {}
+            self._last_turn = -1
+            self._pending_updates.clear()
+            logbook.info(
+                'init_map received while not an active player in this match (spectator mode); '
+                'skipping bot map initialization until next joined game.',
+            )
+            return
+
+        self._spectating_current_game = False
+        self.start_data = maybe_start_data
         self._last_turn = -1
 
         logbook.info(
@@ -472,6 +549,8 @@ class GeneralsClient(object):
         if not isinstance(payload, dict):
             return
         if not self.start_data:
+            if self._spectating_current_game:
+                return
             self._pending_updates.append(dict(payload))
             return
 
