@@ -1,4 +1,6 @@
+import path from 'node:path';
 import { randomBytes, randomInt } from 'node:crypto';
+import { GlobalFonts, createCanvas, type SKRSContext2D } from '@napi-rs/canvas';
 
 interface CaptchaItem {
   code: string;
@@ -17,44 +19,14 @@ interface CaptchaCheckResult {
   error?: string;
 }
 
+interface RgbColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
 const CAPTCHA_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-
-type GlyphRows = readonly [string, string, string, string, string, string, string];
-
-const CAPTCHA_GLYPHS: Record<string, GlyphRows> = {
-  '2': ['01110', '10001', '00001', '00010', '00100', '01000', '11111'],
-  '3': ['11110', '00001', '00001', '01110', '00001', '00001', '11110'],
-  '4': ['00010', '00110', '01010', '10010', '11111', '00010', '00010'],
-  '5': ['11111', '10000', '10000', '11110', '00001', '00001', '11110'],
-  '6': ['01110', '10000', '10000', '11110', '10001', '10001', '01110'],
-  '7': ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
-  '8': ['01110', '10001', '10001', '01110', '10001', '10001', '01110'],
-  '9': ['01110', '10001', '10001', '01111', '00001', '00001', '01110'],
-  A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
-  B: ['11110', '10001', '10001', '11110', '10001', '10001', '11110'],
-  C: ['01110', '10001', '10000', '10000', '10000', '10001', '01110'],
-  D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
-  E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
-  F: ['11111', '10000', '10000', '11110', '10000', '10000', '10000'],
-  G: ['01110', '10001', '10000', '10000', '10011', '10001', '01110'],
-  H: ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
-  J: ['00001', '00001', '00001', '00001', '10001', '10001', '01110'],
-  K: ['10001', '10010', '10100', '11000', '10100', '10010', '10001'],
-  L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
-  M: ['10001', '11011', '10101', '10101', '10001', '10001', '10001'],
-  N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
-  P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
-  Q: ['01110', '10001', '10001', '10001', '10101', '10010', '01101'],
-  R: ['11110', '10001', '10001', '11110', '10100', '10010', '10001'],
-  S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
-  T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
-  U: ['10001', '10001', '10001', '10001', '10001', '10001', '01110'],
-  V: ['10001', '10001', '10001', '10001', '01010', '01010', '00100'],
-  W: ['10001', '10001', '10001', '10101', '10101', '10101', '01010'],
-  X: ['10001', '10001', '01010', '00100', '01010', '10001', '10001'],
-  Y: ['10001', '10001', '01010', '00100', '00100', '00100', '00100'],
-  Z: ['11111', '00001', '00010', '00100', '01000', '10000', '11111'],
-};
+const CAPTCHA_FONT_ALIAS = 'CaptchaQuicksand';
 
 const randomCharFrom = (source: string): string => source[randomInt(source.length)] ?? source[0];
 
@@ -66,27 +38,70 @@ const randomFloat = (min: number, max: number): number => {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-const toHex2 = (value: number): string => value.toString(16).padStart(2, '0');
+const mix = (a: number, b: number, amount: number): number => a + (b - a) * amount;
 
-const randomRgbColor = (minChannel: number, maxChannel: number): string => {
-  const min = clamp(Math.floor(minChannel), 0, 255);
-  const max = clamp(Math.floor(maxChannel), min, 255);
-  const r = randomInt(min, max + 1);
-  const g = randomInt(min, max + 1);
-  const b = randomInt(min, max + 1);
-  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
+const hslToRgb = (hue: number, saturation: number, lightness: number): RgbColor => {
+  const h = ((hue % 360) + 360) % 360;
+  const s = clamp(saturation, 0, 1);
+  const l = clamp(lightness, 0, 1);
+
+  if (s === 0) {
+    const gray = Math.round(l * 255);
+    return { r: gray, g: gray, b: gray };
+  }
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const segment = h / 60;
+  const x = c * (1 - Math.abs((segment % 2) - 1));
+  const m = l - c / 2;
+
+  let rPrime = 0;
+  let gPrime = 0;
+  let bPrime = 0;
+
+  if (segment >= 0 && segment < 1) {
+    rPrime = c;
+    gPrime = x;
+  } else if (segment < 2) {
+    rPrime = x;
+    gPrime = c;
+  } else if (segment < 3) {
+    gPrime = c;
+    bPrime = x;
+  } else if (segment < 4) {
+    gPrime = x;
+    bPrime = c;
+  } else if (segment < 5) {
+    rPrime = x;
+    bPrime = c;
+  } else {
+    rPrime = c;
+    bPrime = x;
+  }
+
+  return {
+    r: Math.round((rPrime + m) * 255),
+    g: Math.round((gPrime + m) * 255),
+    b: Math.round((bPrime + m) * 255),
+  };
 };
 
-const randomInkColor = (): string => randomRgbColor(12, 180);
+const randomInkColor = (): RgbColor => {
+  const hue = randomInt(360);
+  const saturation = randomFloat(0.58, 0.92);
+  const lightness = randomFloat(0.32, 0.62);
+  return hslToRgb(hue, saturation, lightness);
+};
 
-const randomNoiseColor = (): string => randomRgbColor(0, 255);
+const rgbToRgba = (color: RgbColor, alpha: number): string =>
+  `rgba(${color.r}, ${color.g}, ${color.b}, ${clamp(alpha, 0, 1)})`;
 
-const shuffleInPlace = <T>(items: T[]): T[] => {
-  for (let i = items.length - 1; i > 0; i -= 1) {
-    const j = randomInt(i + 1);
-    [items[i], items[j]] = [items[j], items[i]];
+const ensureFontRegistered = (): void => {
+  if (GlobalFonts.has(CAPTCHA_FONT_ALIAS)) {
+    return;
   }
-  return items;
+  const fontPath = path.join(process.cwd(), 'static', 'Quicksand-Bold.otf');
+  GlobalFonts.registerFromPath(fontPath, CAPTCHA_FONT_ALIAS);
 };
 
 class CaptchaService {
@@ -101,8 +116,6 @@ class CaptchaService {
   private readonly width = 132;
 
   private readonly height = 46;
-
-  private readonly glyphPixel = 4;
 
   private readonly maxItems = 5000;
 
@@ -125,7 +138,7 @@ class CaptchaService {
 
     return {
       captchaId,
-      captchaSvg: this.buildSvgDataUri(code),
+      captchaSvg: this.buildCanvasDataUri(code),
       expiresInSeconds: Math.floor(this.ttlMs / 1000),
     };
   }
@@ -169,163 +182,180 @@ class CaptchaService {
     return code;
   }
 
-  private buildSvgDataUri(code: string): string {
-    const codeLength = code.length;
-    const layoutPaddingX = 6;
-    const layoutPaddingY = 4;
-    const minPixelSize = 3;
-    const maxPixelSize = this.glyphPixel + 1;
-    const minGap = 2;
-    const maxGap = 8;
-    const usableWidth = this.width - layoutPaddingX * 2;
-    const maxPixelByWidth = Math.floor((usableWidth - (codeLength - 1) * minGap) / (codeLength * 5));
-    const pixelSize = Math.max(minPixelSize, Math.min(maxPixelSize, maxPixelByWidth));
-    const glyphWidth = 5 * pixelSize;
-    const glyphHeight = 7 * pixelSize;
-    const remainingWidth = Math.max(0, usableWidth - codeLength * glyphWidth);
-    const gap =
-      codeLength > 1 ? Math.max(minGap, Math.min(maxGap, Math.floor(remainingWidth / (codeLength - 1)))) : 0;
-    const totalWidth = code.length * glyphWidth + (code.length - 1) * gap;
-    const extraX = Math.max(0, usableWidth - totalWidth);
-    const maxStartX = Math.max(layoutPaddingX, this.width - totalWidth - layoutPaddingX);
-    const startX = clamp(layoutPaddingX + Math.floor(extraX / 2), layoutPaddingX, maxStartX);
-    const maxStartY = Math.max(layoutPaddingY, this.height - glyphHeight - layoutPaddingY);
-    const startY = clamp(Math.floor((this.height - glyphHeight) / 2), layoutPaddingY, maxStartY);
+  private buildCanvasDataUri(code: string): string {
+    ensureFontRegistered();
 
-    const backgroundHue = randomInt(160, 221);
-    const backgroundLightStart = randomInt(90, 96);
-    const backgroundLightEnd = randomInt(80, 89);
-    const backgroundSaturation = randomInt(35, 58);
-    const backgroundShift = randomInt(-24, 25);
-    const backgroundStart = `hsl(${backgroundHue} ${backgroundSaturation}% ${backgroundLightStart}%)`;
-    const backgroundEnd = `hsl(${(backgroundHue + backgroundShift + 360) % 360} ${backgroundSaturation}% ${backgroundLightEnd}%)`;
+    const backgroundCanvas = createCanvas(this.width, this.height);
+    const backgroundCtx = backgroundCanvas.getContext('2d');
+    this.drawNoiseBackground(backgroundCtx);
 
-    const noiseLines = Array.from({ length: 10 }, () => {
-      const x1 = randomInt(this.width);
-      const y1 = randomInt(this.height);
-      const x2 = randomInt(this.width);
-      const y2 = randomInt(this.height);
-      const strokeWidth = randomFloat(0.7, 1.5).toFixed(2);
-      const color = randomNoiseColor();
-      const opacity = randomFloat(0.15, 0.32).toFixed(2);
-      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`;
-    }).join('');
+    const maskCanvas = createCanvas(this.width, this.height);
+    const maskCtx = maskCanvas.getContext('2d');
+    this.drawTextMask(maskCtx, code);
+    this.warpTextMask(maskCtx);
 
-    const noiseDots = Array.from({ length: 12 }, () => {
-      const cx = randomInt(this.width);
-      const cy = randomInt(this.height);
-      const r = randomFloat(0.5, 2.1).toFixed(2);
-      const color = randomNoiseColor();
-      const opacity = randomFloat(0.18, 0.44).toFixed(2);
-      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="${opacity}"/>`;
-    }).join('');
+    const coloredTextCanvas = createCanvas(this.width, this.height);
+    const coloredTextCtx = coloredTextCanvas.getContext('2d');
+    this.colorizeTextPixels(maskCtx, coloredTextCtx);
 
-    const curveNoise = Array.from({ length: 2 }, () => {
-      const start = `${randomInt(this.width)} ${randomInt(this.height)}`;
-      const control1 = `${randomInt(this.width)} ${randomInt(this.height)}`;
-      const control2 = `${randomInt(this.width)} ${randomInt(this.height)}`;
-      const end = `${randomInt(this.width)} ${randomInt(this.height)}`;
-      const color = randomNoiseColor();
-      const opacity = randomFloat(0.16, 0.34).toFixed(2);
-      const strokeWidth = randomFloat(0.9, 1.5).toFixed(2);
-      return `<path d="M ${start} C ${control1}, ${control2}, ${end}" fill="none" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`;
-    }).join('');
-
-    const textZoneMinX = clamp(startX - 10, 0, this.width);
-    const textZoneMaxX = clamp(startX + totalWidth + 10, 0, this.width);
-    const textZoneMinY = clamp(startY - 8, 0, this.height);
-    const textZoneMaxY = clamp(startY + glyphHeight + 8, 0, this.height);
-    const interferenceDots = Array.from({ length: randomInt(16, 28) }, () => {
-      const nearText = randomFloat(0, 1) < 0.64;
-      const baseX = nearText ? randomFloat(textZoneMinX, textZoneMaxX) : randomFloat(0, this.width);
-      const baseY = nearText ? randomFloat(textZoneMinY, textZoneMaxY) : randomFloat(0, this.height);
-      const cellJitter = pixelSize * 0.14;
-      const size = randomFloat(pixelSize * 0.86, pixelSize * 1.12);
-      const x = clamp(baseX + randomFloat(-cellJitter, cellJitter) - size / 2, 0, this.width - size);
-      const y = clamp(baseY + randomFloat(-cellJitter, cellJitter) - size / 2, 0, this.height - size);
-      const centerX = x + size / 2;
-      const centerY = y + size / 2;
-      const rotate = randomInt(-24, 25);
-      const opacity = randomFloat(0.5, 0.98).toFixed(2);
-      const fill = randomInkColor();
-      const rect = `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${(pixelSize * 0.36).toFixed(2)}" ry="${(pixelSize * 0.36).toFixed(2)}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`;
-      if (randomFloat(0, 1) < 0.08) {
-        const dotX = x + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
-        const dotY = y + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
-        const dotR = randomFloat(0.32, 0.88).toFixed(2);
-        return `${rect}<circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${dotR}" fill="${randomInkColor()}" fill-opacity="${randomFloat(0.48, 0.92).toFixed(2)}"/>`;
-      }
-      return rect;
-    }).join('');
-
-    const letters = code
-      .split('')
-      .map((char, index) => {
-        // Fixed horizontal slots keep characters from overlapping each other.
-        const x = startX + index * (glyphWidth + gap);
-        const y = clamp(startY + randomInt(-1, 2), 2, this.height - glyphHeight - 2);
-        const rotateLimit = codeLength >= 6 ? 8 : codeLength === 5 ? 10 : 12;
-        const skewLimit = codeLength >= 6 ? 5 : codeLength === 5 ? 6 : 8;
-        const rotate = randomInt(-rotateLimit, rotateLimit + 1);
-        const skew = randomInt(-skewLimit, skewLimit + 1);
-        const body = this.renderGlyph(char, pixelSize);
-        const centerX = (5 * pixelSize) / 2;
-        const centerY = (7 * pixelSize) / 2;
-        return `<g transform="translate(${x} ${y})"><g transform="rotate(${rotate} ${centerX} ${centerY}) skewX(${skew})">${body}</g></g>`;
-      })
-      .join('');
-
-    const warpSeed = randomInt(1, 10_000);
-    const warpFrequencyX = randomFloat(0.006, 0.014).toFixed(3);
-    const warpFrequencyY = randomFloat(0.02, 0.05).toFixed(3);
-    const warpScale = randomInt(2, 5);
-    const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}"><defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${backgroundStart}"/><stop offset="100%" stop-color="${backgroundEnd}"/></linearGradient><clipPath id="clip"><rect x="1" y="1" width="${this.width - 2}" height="${this.height - 2}" rx="8" ry="8"/></clipPath><filter id="warp" x="-10%" y="-15%" width="120%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="${warpFrequencyX} ${warpFrequencyY}" numOctaves="1" seed="${warpSeed}" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${warpScale}" xChannelSelector="R" yChannelSelector="G"/></filter></defs><rect width="100%" height="100%" fill="url(#bg)" rx="8" ry="8"/><g clip-path="url(#clip)">${noiseLines}${noiseDots}${curveNoise}${interferenceDots}<g filter="url(#warp)">${letters}</g></g></svg>`;
-
-    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    backgroundCtx.drawImage(coloredTextCanvas, 0, 0);
+    return backgroundCanvas.toDataURL('image/png');
   }
 
-  private renderGlyph(char: string, pixelSize: number): string {
-    const glyph = CAPTCHA_GLYPHS[char] ?? CAPTCHA_GLYPHS.S;
-    const radius = (pixelSize * 0.36).toFixed(2);
-    const rects: string[] = [];
-    const activePixels: Array<{ colIndex: number; rowIndex: number }> = [];
+  private drawNoiseBackground(ctx: SKRSContext2D): void {
+    const gradient = ctx.createLinearGradient(0, 0, this.width, this.height);
+    const hueStart = randomInt(170, 231);
+    const hueEnd = (hueStart + randomInt(-30, 31) + 360) % 360;
+    gradient.addColorStop(0, `hsl(${hueStart} 55% ${randomInt(88, 95)}%)`);
+    gradient.addColorStop(1, `hsl(${hueEnd} 48% ${randomInt(78, 86)}%)`);
 
-    for (let rowIndex = 0; rowIndex < glyph.length; rowIndex += 1) {
-      const row = glyph[rowIndex];
-      for (let colIndex = 0; colIndex < row.length; colIndex += 1) {
-        if (row[colIndex] !== '1') {
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    const lineCount = randomInt(20, 30);
+    for (let i = 0; i < lineCount; i += 1) {
+      const noiseColor = randomInkColor();
+      ctx.strokeStyle = rgbToRgba(noiseColor, randomFloat(0.16, 0.28));
+      ctx.lineWidth = randomFloat(0.7, 1.6);
+      ctx.beginPath();
+      ctx.moveTo(randomFloat(0, this.width), randomFloat(0, this.height));
+      ctx.lineTo(randomFloat(0, this.width), randomFloat(0, this.height));
+      ctx.stroke();
+    }
+
+    const pointCount = randomInt(80, 100);
+    for (let i = 0; i < pointCount; i += 1) {
+      const dotColor = randomInkColor();
+      ctx.fillStyle = rgbToRgba(dotColor, randomFloat(0.18, 0.36));
+      ctx.beginPath();
+      ctx.arc(
+        randomFloat(0, this.width),
+        randomFloat(0, this.height),
+        randomFloat(0.45, 1.5),
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+  }
+
+  private drawTextMask(ctx: SKRSContext2D, code: string): void {
+    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    ctx.textBaseline = 'middle';
+
+    const codeLength = code.length;
+    const paddingX = 10;
+    const usableWidth = this.width - paddingX * 2;
+    const slotWidth = usableWidth / codeLength;
+    const baselineY = this.height * 0.56;
+
+    for (let index = 0; index < codeLength; index += 1) {
+      const char = code[index] ?? '';
+      const centerX = paddingX + slotWidth * (index + 0.5) + randomFloat(-1.8, 1.8);
+      const centerY = baselineY + randomFloat(-2, 2);
+      const fontSize = randomFloat(23, 28);
+      const rotateDeg = randomFloat(-22, 22);
+      const skewX = randomFloat(-0.18, 0.18);
+      const skewY = randomFloat(-0.08, 0.08);
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate((rotateDeg * Math.PI) / 180);
+      ctx.transform(1, skewY, skewX, 1, 0, 0);
+      ctx.font = `${fontSize.toFixed(1)}px ${CAPTCHA_FONT_ALIAS}, Quicksand-Bold, sans-serif`;
+
+      const metrics = ctx.measureText(char);
+      const drawX = -metrics.width / 2;
+      ctx.fillText(char, drawX, randomFloat(-0.6, 0.6));
+
+      if (randomFloat(0, 1) < 0.35) {
+        ctx.lineWidth = randomFloat(0.4, 0.9);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.strokeText(char, drawX, randomFloat(-0.6, 0.6));
+      }
+
+      ctx.restore();
+    }
+  }
+
+  private warpTextMask(ctx: SKRSContext2D): void {
+    const source = ctx.getImageData(0, 0, this.width, this.height);
+    const sourceData = source.data;
+    const warped = ctx.createImageData(this.width, this.height);
+    const warpedData = warped.data;
+
+    const amplitudeX = randomFloat(0.8, 2.2);
+    const amplitudeY = randomFloat(0.4, 1.2);
+    const frequencyX = randomFloat(16, 28);
+    const frequencyY = randomFloat(20, 34);
+    const phaseX = randomFloat(0, Math.PI * 2);
+    const phaseY = randomFloat(0, Math.PI * 2);
+
+    for (let y = 0; y < this.height; y += 1) {
+      const xOffset = Math.sin((y / frequencyY) * Math.PI * 2 + phaseX) * amplitudeX;
+      for (let x = 0; x < this.width; x += 1) {
+        const yOffset = Math.sin((x / frequencyX) * Math.PI * 2 + phaseY) * amplitudeY;
+        const sampleX = Math.round(x + xOffset);
+        const sampleY = Math.round(y + yOffset);
+
+        if (sampleX < 0 || sampleX >= this.width || sampleY < 0 || sampleY >= this.height) {
           continue;
         }
-        activePixels.push({ colIndex, rowIndex });
-      }
-    }
-    shuffleInPlace(activePixels);
 
-    for (const pixel of activePixels) {
-      const { colIndex, rowIndex } = pixel;
-      const cellJitter = pixelSize * 0.14;
-      const size = randomFloat(pixelSize * 0.86, pixelSize * 1.12);
-      const x = colIndex * pixelSize + randomFloat(-cellJitter, cellJitter);
-      const y = rowIndex * pixelSize + randomFloat(-cellJitter, cellJitter);
-      const centerX = x + size / 2;
-      const centerY = y + size / 2;
-      const rotate = randomInt(-24, 25);
-      const opacity = randomFloat(0.62, 0.99).toFixed(2);
-      const fill = randomInkColor();
-      rects.push(
-        `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" rx="${radius}" ry="${radius}" fill="${fill}" fill-opacity="${opacity}" transform="rotate(${rotate} ${centerX.toFixed(2)} ${centerY.toFixed(2)})"/>`,
-      );
-      if (randomFloat(0, 1) < 0.16) {
-        const dotX = x + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
-        const dotY = y + randomFloat(-pixelSize * 0.45, pixelSize * 0.45);
-        const dotR = randomFloat(0.32, 0.88).toFixed(2);
-        rects.push(
-          `<circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${dotR}" fill="${randomInkColor()}" fill-opacity="${randomFloat(0.48, 0.92).toFixed(2)}"/>`,
-        );
+        const sourceIndex = (sampleY * this.width + sampleX) * 4;
+        const targetIndex = (y * this.width + x) * 4;
+        warpedData[targetIndex] = sourceData[sourceIndex];
+        warpedData[targetIndex + 1] = sourceData[sourceIndex + 1];
+        warpedData[targetIndex + 2] = sourceData[sourceIndex + 2];
+        warpedData[targetIndex + 3] = sourceData[sourceIndex + 3];
       }
     }
 
-    return rects.join('');
+    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.putImageData(warped, 0, 0);
+  }
+
+  private colorizeTextPixels(maskCtx: SKRSContext2D, outputCtx: SKRSContext2D): void {
+    const maskData = maskCtx.getImageData(0, 0, this.width, this.height);
+    const maskPixels = maskData.data;
+    const colored = outputCtx.createImageData(this.width, this.height);
+    const coloredPixels = colored.data;
+
+    const paletteA = randomInkColor();
+    const paletteB = randomInkColor();
+    const paletteC = randomInkColor();
+
+    for (let y = 0; y < this.height; y += 1) {
+      const verticalMix = y / Math.max(1, this.height - 1);
+      for (let x = 0; x < this.width; x += 1) {
+        const index = (y * this.width + x) * 4;
+        const alpha = maskPixels[index + 3];
+        if (alpha < 10) {
+          continue;
+        }
+
+        const horizontalMix = x / Math.max(1, this.width - 1);
+        const blendA = {
+          r: mix(paletteA.r, paletteB.r, horizontalMix),
+          g: mix(paletteA.g, paletteB.g, horizontalMix),
+          b: mix(paletteA.b, paletteB.b, horizontalMix),
+        };
+        const blendB = {
+          r: mix(blendA.r, paletteC.r, verticalMix),
+          g: mix(blendA.g, paletteC.g, verticalMix),
+          b: mix(blendA.b, paletteC.b, verticalMix),
+        };
+
+        const grain = randomInt(-28, 29);
+        coloredPixels[index] = clamp(Math.round(blendB.r + grain), 0, 255);
+        coloredPixels[index + 1] = clamp(Math.round(blendB.g + grain), 0, 255);
+        coloredPixels[index + 2] = clamp(Math.round(blendB.b + grain), 0, 255);
+        coloredPixels[index + 3] = alpha;
+      }
+    }
+
+    outputCtx.putImageData(colored, 0, 0);
   }
 
   private cleanup(forceDeleteCount = 0): void {
