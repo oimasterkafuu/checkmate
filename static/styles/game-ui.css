@@ -72,6 +72,7 @@
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
+  margin-top: 8px;
   padding: 5px 10px 5px 18px;
 }
 #replay-mask-user {
