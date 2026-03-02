@@ -258,6 +258,7 @@ const generateMediterraneanMap = (
     }
   }
 
+  const outerCitySeaDistanceMin = Math.max(4, Math.floor(Math.min(n, m) * 0.07));
   const cityCandidates: Array<[number, number]> = [];
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
@@ -265,6 +266,9 @@ const generateMediterraneanMap = (
         continue;
       }
       if (hasAdjacentSwamp8(gridType, n, m, i, j)) {
+        continue;
+      }
+      if (seaDistance[i * m + j] < outerCitySeaDistanceMin) {
         continue;
       }
       cityCandidates.push([i, j]);
@@ -311,9 +315,11 @@ const generateMediterraneanMap = (
     innerSeaCityCandidates.length,
     Math.max(0, Math.floor(targetCityCount * 0.16)),
   );
+  const innerSeaCitySet = new Set<number>();
   for (let i = 0; i < innerSeaCityTarget; i += 1) {
     const [x, y] = innerSeaCityCandidates[i];
     gridType[x][y] = -1;
+    innerSeaCitySet.add(x * m + y);
   }
 
   const requiredPlayers = Math.max(0, config.requiredPlayers);
@@ -399,24 +405,8 @@ const generateMediterraneanMap = (
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < m; j += 1) {
       if (gridType[i][j] === -1) {
-        let surroundedByNonEmpty = i > 0 && j > 0 && i + 1 < n && j + 1 < m;
-        if (surroundedByNonEmpty) {
-          for (let dx = -1; dx <= 1; dx += 1) {
-            for (let dy = -1; dy <= 1; dy += 1) {
-              if (dx === 0 && dy === 0) {
-                continue;
-              }
-              if (gridType[i + dx][j + dy] === 0) {
-                surroundedByNonEmpty = false;
-                break;
-              }
-            }
-            if (!surroundedByNonEmpty) {
-              break;
-            }
-          }
-        }
-        armyCnt[i][j] = surroundedByNonEmpty ? 10 : rng.intInclusive(20, 30);
+        const key = i * m + j;
+        armyCnt[i][j] = innerSeaCitySet.has(key) ? 10 : rng.intInclusive(40, 50);
       }
     }
   }
