@@ -264,9 +264,6 @@ const generateMediterraneanMap = (
       if (!st[i][j] || gridType[i][j] !== 0) {
         continue;
       }
-      if (resolveEdgeDistance(n, m, i, j) <= baseSpawnBand) {
-        continue;
-      }
       if (hasAdjacentSwamp8(gridType, n, m, i, j)) {
         continue;
       }
